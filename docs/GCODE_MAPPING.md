@@ -24,8 +24,8 @@ This mapping is **experimental**. Physical Stage 2–7 tests are still required.
 | `;Printer Type: RAISE3D Pro2 Plus - Hyper Speed` | Same | Copied | Confirmed in this file. |
 | `;Firmware: Klipper` | Same | Copied | Confirmed in this file. |
 | `;Bounding Box:…` | Omitted | Omitted | Per-print metadata; PrusaSlicer cannot know it at start. |
-| `M221 T0 S94.00` | `M221 T0 S{extrusion_multiplier[0]*100}` | Changed | 94% is Raise3D PLA compensation, not a generic PLA measurement. Default multiplier 1.00 until calibrated. |
-| `M140 S60` / `M104 T0 S230` / `M109 T0 S230` / `T0` / `M190 S60` | Same commands with `{first_layer_bed_temperature[0]}` and `{first_layer_temperature[0]}` | Copied structure; temps parameterized | Heat **T0 only**, matching this left-only file. Do not heat T1 (MackDan community advice not used here because this file does not). |
+| `M221 T0 S94.00` | `M221 T0 S{extrusion_multiplier[0]*100}` with filament `extrusion_multiplier = 1` | Changed | ideaMaker `[Raise3D] PLA` used 94%. Operator’s proven Prusa PLA uses 100%; start G-code follows the filament multiplier. End G-code still resets `M221 … S100`. |
+| `M140 S60` / `M104 T0 S230` / `M109 T0 S230` / `T0` / `M190 S60` | Same commands with `{first_layer_bed_temperature[0]}` and `{first_layer_temperature[0]}` (filament defaults **215 / 225 / 60**) | Copied structure; temps from operator Prusa PLA | Dual start still heats T0 and T1 when `is_extruder_used`. Left-only skips T1. ideaMaker files were 230 °C. |
 | `G21` `G90` `M82` `M107` | `G21` `G90` `M83` `M107` | Changed | ideaMaker uses absolute E. PrusaSlicer wipe tower requires relative E, so the Dual profile emits `M83`. |
 | `G28 X0 Y0` then `G28 Z0` | Same | Copied | Do not replace with `G28` or add `G29`. |
 | `G1 Z15.0 F300` | Same | Copied | Clearance before purge. |
@@ -52,7 +52,7 @@ Source: `Multicolor.gcode`. XY offset is **not** sliced in (`extruder_offset = 0
 
 | Dual behavior | ideaMaker (`Multicolor.gcode`) | PrusaSlicer | Action |
 | --- | --- | --- | --- |
-| Heat / flow both tools | `M221`/`M104`/`M109` T0 and T1 at 230 °C | Same commands gated with `is_extruder_used` | Copied; temps parameterized |
+| Heat / flow both tools | `M221`/`M104`/`M109` T0 and T1 at 230 °C, `M221 S94` | Same commands gated with `is_extruder_used`; filament defaults 215/225 °C and 1.00 flow | Copied commands; temps/flow from operator Prusa PLA |
 | Home | `T0` then `G28 X0 Y0` / `G28 Z0` / `G1 Z15.0 F300` | Same | Copied |
 | Dual purge | `T1`: `G1 F200 E10` then `G1 F200 E-11.00`. `T0`: `G1 F200 E10` (no XY wipe) | Same when both tools used; first printing tool primed last | Copied. **Not** the left-only `X20 Y0` line |
 | Left-only purge | (left file) blob + `G1 X20 Y0 F140 E30` | Used only when T1 is unused | Copied from left file |

@@ -26,7 +26,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.5")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.7")
         self.assertNotIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
         self.assertNotIn("printer:Raise3D Pro2 Plus Hyper Speed 0.4 Left", self.ini)
@@ -48,7 +48,11 @@ class VendorStructureTests(unittest.TestCase):
         self.assertIn(";Filament Name #2: [Raise3D] PLA", self.ini["printer:Raise3D Pro2 Plus Hyper Speed 0.4 Dual"]["start_gcode"])
         self.assertNotIn(";Filament Name #1: PLA\n", self.ini["printer:Raise3D Pro2 Plus Hyper Speed 0.4 Dual"]["start_gcode"])
         self.assertIn("filament_extruder_id", filament["start_filament_gcode"])
-        self.assertNotIn("230", filament.get("temperature", "200"))
+        self.assertEqual(filament["temperature"], "225")
+        self.assertEqual(filament["first_layer_temperature"], "215")
+        self.assertEqual(filament.get("extrusion_multiplier") or self.ini["filament:*common*"]["extrusion_multiplier"], "1")
+        self.assertEqual(filament["first_layer_bed_temperature"], "60")
+        self.assertEqual(filament["idle_temperature"], "70")
 
     def test_dual_printer_preset(self) -> None:
         section = "printer:Raise3D Pro2 Plus Hyper Speed 0.4 Dual"

@@ -36,11 +36,11 @@ This profile is **experimental**. It is not production-ready.
 | Tools used | Left file: `T0` only. Dual file: `T0` and `T1`, many swaps | Confirmed. Dual profile gates unused tools with `is_extruder_used` |
 | Filament name | `[Raise3D] PLA` | Confirmed in ideaMaker. PrusaSlicer start G-code now emits the same `#1`/`#2` comments. Wizard preset remains Generic PLA. |
 | Filament diameter | 1.75 mm | Confirmed |
-| Filament compensation | 94% (`M221 T0 S94.00`) | Confirmed for Raise3D PLA; **do not treat as generic PLA calibration** |
-| First-layer nozzle / bed | `M109 T0 S230` / `M190 S60` | Confirmed for this Raise3D PLA slice |
+| Filament compensation | 94% (`M221 T0 S94.00`) | Confirmed in ideaMaker. PrusaSlicer filament preset uses multiplier **1.00** (operator’s proven Prusa PLA). |
+| First-layer nozzle / bed | `M109 T0 S230` / `M190 S60` | Confirmed in ideaMaker. PrusaSlicer preset is **215 °C first layer / 225 °C other / 60 °C bed** (operator’s proven Prusa PLA). |
 | First layer height | 0.300 mm then 0.200 mm | Confirmed |
 | Copperhead hotends | Not mentioned in G-code | Assumption (operator-stated hardware) |
-| PLA temps / flow / retract | Not in this file | Assumption requiring physical testing |
+| PLA temps / flow / retract | ideaMaker 230 °C / 94% / 1.5 mm at F2400 | PrusaSlicer uses operator Prusa PLA: 215/225 °C, multiplier 1.00, retract still 1.5 mm / 40 mm/s. Dual standby remains 180 °C. |
 
 ## Geometry
 
@@ -124,4 +124,4 @@ These are 2022 **Marlin** PrusaSlicer profiles for pre-Hyper Speed Pro2/Pro2 Plu
 6. Right nozzle and dual-head lift: dual G-code confirmed. Confirm firmware XY offset (do not also slice 25 mm). Dual purge is in-place `E10` at home, not `X40 Y0`. Watch Stage 6–7 for collisions and ~25 mm shift.
 7. Dual tool-change: PrusaSlicer wipe tower (user-placed) vs ideaMaker’s tower at ~X96 Y282. Confirm the tower is where you put it and ooze does not hit the part.
 8. Relative E (`M83`) vs ideaMaker `M82` — inspect first dual slice for mixed E mode.
-9. PLA temperature, flow, and volumetric limit — not measured. ideaMaker dual standby is 180 °C at print temp 230 °C.
+9. Volumetric limit 15 mm³/s is Hyper FFF L1. Print temps are the operator’s Prusa PLA (215/225 °C, 1.00 flow). ideaMaker was 230 °C / 94%. Dual standby stays 180 °C; filament idle 70 °C is not emitted in tool-change G-code.

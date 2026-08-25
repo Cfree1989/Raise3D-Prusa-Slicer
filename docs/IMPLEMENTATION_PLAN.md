@@ -7,7 +7,7 @@ Status: **experimental Dual bundle**. Dual start/tool-change/end now matched to 
 1. Vendor bundle `vendor/Raise3D.ini` + `vendor/Raise3D.idx` for Configuration Wizard / local vendor drop-in. G-code thumbnails off; `scripts/ensure_m99123_first.py` puts `M99123` on line 1 after export.
 2. Importable config bundle `profiles/Raise3D-Pro2Plus-HS-0.4-bundle.ini` (`File → Import → Import Config Bundle`).
 3. Printer: Raise3D Pro2 Plus Hyper Speed 0.4 Dual. Unused tools skipped with `is_extruder_used`.
-4. Filament: Generic PLA 1.75 mm (G-code name `[Raise3D] PLA`). Temps from Prusa Generic PLA (210/215). Volumetric 15 mm³/s = Pro2 Hyper FFF L1. Assign to both slots.
+4. Filament: Generic PLA 1.75 mm (G-code name `[Raise3D] PLA`). Nozzle 215/225 °C and multiplier 1.00 from the operator’s proven Prusa PLA. Bed 60 °C. Dual standby 180 °C. Volumetric 15 mm³/s = Pro2 Hyper FFF L1. Assign to both slots.
 5. Print: XL-style 0.4 mm family (0.10 FAST DETAIL, 0.15/0.20/0.25 SPEED and STRUCTURAL, 0.28 DRAFT). Default 0.20 mm SPEED. Motion clipped to Pro2 Hyper FFF L1 (150 mm/s, 5000 mm/s², 15 mm³/s). Travel 150 mm/s. Wipe tower on — PrusaSlicer places it; relative E / `M83` (ideaMaker used `M82`).
 6. Left-only purge from `conradfreeman_filament_orange.gcode`. Dual start, standby tool-change, and end from `Multicolor.gcode`.
 7. Tool-change standby 180 °C, `M109`, firmware XY offset (`extruder_offset = 0x0,0x0`). Wipe tower position/shape is not copied from ideaMaker.

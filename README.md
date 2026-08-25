@@ -14,7 +14,7 @@ Printer workflow: slice on the PC → copy `.gcode` to USB → start from RaiseT
 
 One printer, two 0.4 mm tools (T0 left, T1 right), like XL 2-tool. Assign filament to both slots. Print left-only, right-only, or both: unused tools are skipped via `is_extruder_used`. The printer firmware applies the ~25 mm X nozzle offset — PrusaSlicer offset is `0x0,0x0` so it is not applied twice. Wipe tower is on for dual-color: PrusaSlicer places and shapes it (relative E / `M83`). Do not copy ideaMaker tower coordinates.
 
-Print layout follows Prusa XL IS 0.4 (SPEED / STRUCTURAL / DETAIL / DRAFT). Motion is clipped to Raise3D Pro2 **Hyper FFF L1**: 150 mm/s print, 5000 mm/s² accel, 15 mm³/s. Travel stays **150 mm/s** (this machine’s ideaMaker / `machine_max_feedrate`). XL values of 170–400 mm/s are not used. Generic PLA temps follow Prusa Templates (210/215 °C, 60 °C bed), volumetric 15 mm³/s.
+Print layout follows Prusa XL IS 0.4 (SPEED / STRUCTURAL / DETAIL / DRAFT). Motion is clipped to Raise3D Pro2 **Hyper FFF L1**: 150 mm/s print, 5000 mm/s² accel, 15 mm³/s. Travel stays **150 mm/s** (this machine’s ideaMaker / `machine_max_feedrate`). XL values of 170–400 mm/s are not used. Generic PLA nozzle is **215 °C first layer / 225 °C other layers**, multiplier **1.00**, bed **60 °C** (operator’s proven Prusa PLA). Dual unused-nozzle standby stays **180 °C** from ideaMaker. Volumetric 15 mm³/s.
 
 ## Install
 
@@ -63,7 +63,7 @@ Evidence labels: `docs/MACHINE_BEHAVIOR.md`
 
 - Copying `M99123` from the ideaMaker file enables Hyper Speed on the touchscreen (forum reports are mixed).
 - `;Filament Name #1: [Raise3D] PLA` (and `#2` on Dual) matches the name loaded on **this** printer. If a slot was renamed, change the G-code comment or the slot so they match exactly.
-- PLA at 215/210 °C and 60 °C bed — Prusa Generic PLA, not ideaMaker [Raise3D] PLA 230 °C / 94% flow.
+- PLA at 215 °C first layer / 225 °C other layers, multiplier 1.00, 60 °C bed — operator’s proven Prusa PLA. ideaMaker `[Raise3D] PLA` was 230 °C / 94%; dual standby stays 180 °C from Multicolor (filament idle 70 °C is not used in Raise3D tool-change G-code).
 - `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later 2000/5000 switching.
 - `M2000` pause (community; not in the ideaMaker file).
 - Dual: electronic lift on `T0`/`T1`, firmware XY offset, in-place dual prime (`F200 E10` / `E-11`), tool-change standby 180 °C. Wipe tower position/shape is PrusaSlicer's (relative E). Mid-print next-tool preheat is not replicated; `M109` waits at the swap.
