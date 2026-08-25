@@ -1,6 +1,6 @@
 # Raise3D Pro2 Plus Hyper Speed — PrusaSlicer (experimental)
 
-**This is not a production-ready profile.** It is a PrusaSlicer bundle derived from known-good ideaMaker G-code on this printer (left tool) plus dual-head start/tool-change built from that sequence. Validate on the machine before any unattended print. Keep ideaMaker as the rollback slicer.
+**This is not a production-ready profile.** It is a PrusaSlicer bundle derived from known-good ideaMaker G-code on this printer: left-only start/purge from `conradfreeman_filament_orange.gcode`, dual start/tool-change/end from `Multicolor.gcode`. Validate on the machine before any unattended print. Keep ideaMaker as the rollback slicer.
 
 Printer workflow: slice on the PC → copy `.gcode` to USB → start from RaiseTouch. Third-party slicers do not write ideaMaker’s `.data` file, so touchscreen preview/layer metadata may be missing. ([Raise3D: Can I use another slicer?](https://support.raise3d.com/General-Question/can-i-use-another-slicer-14-398.html))
 
@@ -40,7 +40,7 @@ Tested against PrusaSlicer **2.9.6**.
 1. Select **Raise3D Pro2 Plus Hyper Speed 0.4 Dual**.
 2. Load **Generic PLA** on filament slot 1 and slot 2 (or only the slot you will print with).
 3. On the plater, set each object’s extruder (1 = left / T0, 2 = right / T1), or paint multi-material.
-4. Slice a small test. Wipe tower stays off (absolute E).
+4. Slice a small test. Wipe tower stays off (absolute E). Tool changes park at `X30 Y295` and drop the unused nozzle to 180 °C.
 5. Confirm `;Filament Name #1:` / `#2:` is **PLA** and matches the names loaded on the printer.
 
 Right-only: assign the part to extruder 2. Start G-code still homes with T0, then purges and prints T1.
@@ -49,13 +49,12 @@ Keep dual-color (and right-extruder) parts off the leftmost ~25 mm of the bed. T
 
 ## Source of truth
 
-Start/end G-code and Hyper Speed headers come from:
+Start/end G-code and Hyper Speed headers come from ideaMaker **5.4.2.8790** (`RAISE3D Pro2 Plus - Hyper Speed`, `;Firmware: Klipper`, nozzles `0.400 0.400`, bed `305 × 305 × 605`):
 
-`reference/ideamaker/conradfreeman_filament_orange.gcode`
+- `reference/ideamaker/conradfreeman_filament_orange.gcode` — left `T0` only (purge `X20 Y0`)
+- `reference/ideamaker/Multicolor.gcode` — dual / two-color (`T0`+`T1` in-place prime, park `X30 Y295`, standby 180 °C, wipe tower in ideaMaker only)
 
-sliced by **ideaMaker 5.4.2.8790** as `RAISE3D Pro2 Plus - Hyper Speed`, `;Firmware: Klipper`, left tool `T0` only, nozzles `0.400 0.400`, bed `305 × 305 × 605`.
-
-Dual heat/purge/tool-change is that left sequence plus `T1` when the right tool is used. There is not yet a matching ideaMaker dual file. The 2022 forum zips in `reference/community/` are **community starting points** (Marlin, pre-Hyper Speed). They were not used for start/end G-code. Thread: [Prusa Slicer Profile for Raise3D Pro2 dual head printer](https://forum.prusa3d.com/forum/prusaslicer/prusa-slicer-profile-for-raise3d-pro2-dual-head-printer/).
+The 2022 forum zips in `reference/community/` are **community starting points** (Marlin, pre-Hyper Speed). They were not used for start/end G-code. Thread: [Prusa Slicer Profile for Raise3D Pro2 dual head printer](https://forum.prusa3d.com/forum/prusaslicer/prusa-slicer-profile-for-raise3d-pro2-dual-head-printer/).
 
 Command-by-command mapping: `docs/GCODE_MAPPING.md`  
 Evidence labels: `docs/MACHINE_BEHAVIOR.md`
@@ -67,7 +66,7 @@ Evidence labels: `docs/MACHINE_BEHAVIOR.md`
 - PLA at 215/210 °C and 60 °C bed — Prusa Generic PLA, not ideaMaker [Raise3D] PLA 230 °C / 94% flow.
 - `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later 2000/5000 switching.
 - `M2000` pause (community; not in the ideaMaker file).
-- Dual: electronic lift on `T0`/`T1`, firmware XY offset, T1 purge at `X40 Y0`, and tool-change standby (`temperature-30` then `M109`) — no ideaMaker dual G-code yet.
+- Dual: electronic lift on `T0`/`T1`, firmware XY offset, in-place dual prime (`F200 E10` / `E-11`), tool-change park `X30 Y295` and standby 180 °C. ideaMaker wipe tower is **not** in the PrusaSlicer profile (needs relative E). Mid-print next-tool preheat is not replicated; `M109` waits at the swap.
 
 ## Before you print
 
@@ -79,8 +78,8 @@ python scripts\validate_gcode.py path\to\sliced.gcode
 python scripts\compare_gcode.py reference\ideamaker\conradfreeman_filament_orange.gcode path\to\sliced.gcode
 ```
 
-3. Read the first ~80 lines and the end sequence. Confirm `M99123` is line 1, `G28 X0 Y0` then `G28 Z0`, left purge `X20 Y0`, `M1001` / `M1002`, no `G29` / `M92` / `M218`. Dual: T1 heat/purge only if that tool is used; tool-change must not contain `M218`.
-4. Stage 3: supervised first layer (home, heat, purge, Z height, fan, shutdown). Dual: watch the unused nozzle lift and T1 first motion.
+3. Read the first ~80 lines and the end sequence. Confirm `M99123` is line 1, `G28 X0 Y0` then `G28 Z0`, `M1001` / `M1002`, no `G29` / `M92` / `M218`. Left-only: purge `X20 Y0`. Dual: in-place `F200 E10` primes (no `X40 Y0`); tool-change parks at `X30 Y295` with standby `S180`.
+4. Stage 3: supervised first layer (home, heat, purge, Z height, fan, shutdown). Dual: watch the unused nozzle lift, T1 first motion, and the park/prime at tool-change.
 5. Do not leave a long job unattended until Stages 3–4 pass. Dual color is Stage 7.
 
 ## Rollback

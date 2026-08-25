@@ -1,7 +1,11 @@
 # Machine-behavior report
 
-Source of truth: `conradfreeman_filament_orange.gcode` (ideaMaker 5.4.2.8790, 2026-08-24).
-Matching `.data` file is binary metadata only and was not modified.
+Sources of truth (ideaMaker 5.4.2.8790):
+
+- `conradfreeman_filament_orange.gcode` — left `T0` only (2026-08-24)
+- `Multicolor.gcode` — dual / two-color `T0`+`T1` (2026-08-25)
+
+Matching `.data` files are binary metadata only and were not modified.
 
 Every item is labeled:
 
@@ -29,7 +33,7 @@ This profile is **experimental**. It is not production-ready.
 | Item | Value | Status |
 | --- | --- | --- |
 | Nozzles in `;Dimension:` | `0.400 0.400` | Confirmed |
-| Tools used | `T0` once at start; no `T1` | Confirmed left-only in this file. Dual printer profile adds gated T1 (Assumption requiring physical testing) |
+| Tools used | Left file: `T0` only. Dual file: `T0` and `T1`, many swaps | Confirmed. Dual profile gates unused tools with `is_extruder_used` |
 | Filament name | `[Raise3D] PLA` | Confirmed — **not** the generic PLA preset name |
 | Filament diameter | 1.75 mm | Confirmed |
 | Filament compensation | 94% (`M221 T0 S94.00`) | Confirmed for Raise3D PLA; **do not treat as generic PLA calibration** |
@@ -45,7 +49,7 @@ This profile is **experimental**. It is not production-ready.
 | `;Dimension:` | `305.000 305.000 605.000 0.400 0.400` | Confirmed |
 | Origin | `;Origin Center: 0` (corner origin) | Confirmed |
 | Plate shape | `;Plate Shape: 0` | Confirmed |
-| This print bounding box | X 101.505–203.495, Y 91.316–213.451, Z 0–43.100 | Confirmed |
+| This print bounding box | Left: X 101.505–203.495, Y 91.316–213.451, Z 0–43.100. Dual: X 69.430–183.760, Y 49.015–308.595, Z 0–60.900 (wipe tower exceeds 305 mm Y) | Confirmed |
 | Official Pro2 Plus volume | 305 × 305 × 605 mm | [Supported by Raise3D documentation](https://www.raise3d.com/pro2-series/) |
 | izumi 330 × 327.5 bed | Community Pro2 (not Plus), 2022 | Community-derived; **not used** |
 
@@ -62,8 +66,8 @@ This profile is **experimental**. It is not production-ready.
 | `M218` | No | Do not emit |
 | `G28` | `G28 X0 Y0` then `G28 Z0` at start; `G28 X0 Y0` at end | Confirmed |
 | `G29` | No | Do not emit |
-| `T0` | Once at start | Confirmed |
-| `T1` | No | Right / dual: implemented in Dual printer profile; **not confirmed** in ideaMaker G-code |
+| `T0` | Yes (both files) | Confirmed |
+| `T1` | Dual file only | Confirmed in `Multicolor.gcode` |
 | `G10` / `G11` | No | |
 | `SET_VELOCITY_LIMIT` | `ACCEL=5000`, `ACCEL=2000`, `SQUARE_CORNER_VELOCITY=10` | Confirmed Klipper |
 | `M221` | Start `S94`, end `S100` | Confirmed |
@@ -71,21 +75,25 @@ This profile is **experimental**. It is not production-ready.
 
 ## Start sequence (complete, from this file)
 
-See `tests/fixtures/ideamaker_left_start.gcode` and `docs/GCODE_MAPPING.md`.
+See `tests/fixtures/ideamaker_left_start.gcode`, `tests/fixtures/ideamaker_dual_start.gcode`, and `docs/GCODE_MAPPING.md`.
 
-Heat **T0 only**, home X/Y then Z, raise Z to 15 mm, purge at origin → `X20 Y0`, `M1001`, then `SET_VELOCITY_LIMIT`.
+Left file: heat **T0 only**, home X/Y then Z, raise Z to 15 mm, purge at origin → `X20 Y0`, `M1001`, then `SET_VELOCITY_LIMIT`.
+
+Dual file: heat **T0 and T1**, same home, then in-place prime (`T1` `E10`/`E-11` at `F200`, `T0` `E10` at `F200`), `M1001`, `M104 T1 S180`, then `SET_VELOCITY_LIMIT`. No `X20 Y0` wipe.
 
 ## End sequence (complete, from this file)
 
-See `tests/fixtures/ideamaker_left_end.gcode`.
+See `tests/fixtures/ideamaker_left_end.gcode` and `tests/fixtures/ideamaker_dual_end.gcode`.
 
-Fan off, retract, Z hop, `M221 T0 S100`, `M1002`, heaters off, relative retract/wipe, `G28 X0 Y0`, `M84`, `G90`.
+Left file: fan off, retract, Z hop, `M221 T0 S100`, `M1002`, heaters off (including bare `M104 S0`), relative retract/wipe, `G28 X0 Y0`, `M84`, `G90`.
+
+Dual file: same shape but `M221` T0 and T1 `S100` twice around `M1002`, `M104 T0 S0` and `M104 T1 S0`, **no** bare `M104 S0`. Dual printer end G-code follows the dual file.
 
 ## Tool-change / pause / recovery
 
 | Sequence | Status |
 | --- | --- |
-| Tool change | Not present in the ideaMaker file. Dual profile: PrusaSlicer `T` + standby `M104` / wait `M109`. Electronic lift is firmware. **Assumption requiring physical testing** |
+| Tool change | Confirmed in `Multicolor.gcode`: park `X30 Y295`, retract 11 mm at `F1200`, standby `M104 T{prev} S180`, wait `M109 T{next} S230`, `T`, wipe-tower prime 11 mm. No `M218`. Electronic lift is firmware. PrusaSlicer copies park/standby/`M109`; wipe tower is not replicated |
 | Pause / `M600` / `M2000` | Not present in this file |
 | Recovery block | Present as **comments** after `;Data end` (`Recover start:29` … `Recover end`). Not executable G-code. **Not implemented** as PrusaSlicer custom G-code |
 
@@ -113,5 +121,6 @@ These are 2022 **Marlin** PrusaSlicer profiles for pre-Hyper Speed Pro2/Pro2 Plu
 3. RaiseTouch firmware version.
 4. Whether `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later drops to 2000 is acceptable.
 5. Pause/resume (`M2000`) on this Hyper Speed firmware.
-6. Right nozzle and dual-head lift: Dual profile exists; no ideaMaker dual G-code. Confirm firmware XY offset (do not also slice 25 mm) and T1 purge at X40 Y0.
-7. PLA temperature, flow, and volumetric limit — not measured.
+6. Right nozzle and dual-head lift: dual G-code confirmed. Confirm firmware XY offset (do not also slice 25 mm). Dual purge is in-place `E10` at home, not `X40 Y0`. Watch Stage 6–7 for collisions and ~25 mm shift.
+7. Dual tool-change without ideaMaker wipe tower: 11 mm unretract at park `X30 Y295` vs ideaMaker’s wipe tower at ~X96 Y282. Confirm ooze does not hit the part.
+8. PLA temperature, flow, and volumetric limit — not measured. ideaMaker dual standby is 180 °C at print temp 230 °C.

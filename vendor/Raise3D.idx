@@ -6,3 +6,5 @@ min_slic3r_version = 2.9.0
 0.3.1 Dual printer only. Left-only printer and print presets removed. Unused tools still skipped with is_extruder_used.
 0.4.0 XL-style 0.4 mm print family (0.10 DETAIL, 0.15/0.20/0.25 SPEED and STRUCTURAL, 0.28 DRAFT) plus Generic PETG/ABS/ASA/FLEX. Speeds and volumetric flow still clipped to Hyper FFF L1. Not production-ready.
 0.4.1 Configuration Wizard filament is Generic PLA only. Unused PETG/ABS/ASA/FLEX presets removed.
+0.4.2 Dual tool-change G-code no longer indexes temperature[previous_extruder] (previous_extruder is -1 on the first change).
+0.5.0 Dual start, park/standby tool-change, and end matched to ideaMaker Multicolor.gcode. Standby 180 C, park X30 Y295, 11 mm toolchange retract. Wipe tower still off (absolute E).

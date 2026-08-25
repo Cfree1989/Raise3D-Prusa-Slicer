@@ -1,6 +1,6 @@
 # Implementation plan (first pass)
 
-Status: **experimental Dual bundle**. Not production-ready. Dual has no ideaMaker dual-file confirmation yet.
+Status: **experimental Dual bundle**. Dual start/tool-change/end now matched to `Multicolor.gcode`. Not production-ready. Physical Stage 6–7 still required.
 
 ## What this pass includes
 
@@ -9,14 +9,15 @@ Status: **experimental Dual bundle**. Not production-ready. Dual has no ideaMake
 3. Printer: Raise3D Pro2 Plus Hyper Speed 0.4 Dual. Unused tools skipped with `is_extruder_used`.
 4. Filament: Generic PLA 1.75 mm. Temps from Prusa Generic PLA (210/215). Volumetric 15 mm³/s = Pro2 Hyper FFF L1. Assign to both slots.
 5. Print: XL-style 0.4 mm family (0.10 FAST DETAIL, 0.15/0.20/0.25 SPEED and STRUCTURAL, 0.28 DRAFT). Default 0.20 mm SPEED. Motion clipped to Pro2 Hyper FFF L1 (150 mm/s, 5000 mm/s², 15 mm³/s). Travel 150 mm/s. Wipe tower off — requires relative E; this printer uses ideaMaker M82.
-6. Start/end G-code derived from `conradfreeman_filament_orange.gcode` as mapped in `docs/GCODE_MAPPING.md`, with T1 heat/purge gated.
-7. Tool-change `M104` standby + `M109`, firmware XY offset (`extruder_offset = 0x0,0x0`).
+6. Left-only purge from `conradfreeman_filament_orange.gcode`. Dual start, park/standby tool-change, and end from `Multicolor.gcode`.
+7. Tool-change park `X30 Y295`, standby 180 °C, `M109`, firmware XY offset (`extruder_offset = 0x0,0x0`). Wipe tower off.
 8. G-code inspect / validate / compare scripts and fixtures.
 9. README with install, Dual usage, assumptions, validation stages, and ideaMaker rollback.
 
 ## What this pass does not include
 
-- ideaMaker dual / right-only reference G-code (still missing)
+- ideaMaker right-only reference G-code
+- ideaMaker wipe tower (PrusaSlicer cannot emit it with `M82`)
 - Pause/runout recovery as a tested feature
 - Hyper Speed PLA filament preset
 - Claiming the Hyper Speed touchscreen checkmark works
@@ -39,5 +40,5 @@ Status: **experimental Dual bundle**. Not production-ready. Dual has no ideaMake
 | 3 | Supervised first-layer: homing, heat, purge, Z height, fan, shutdown. |
 | 4 | Small calibration object vs ideaMaker baseline. |
 | 5 | Pause / runout — only after 3–4 pass. |
-| 6 | Right-only (object assigned to extruder 2): T0 home, T1 purge at X40 Y0, lift, first layer. |
-| 7 | Dual color: tool-change lift, standby temp, alignment (firmware offset). Abort if nozzles collide or T1 is shifted ~25 mm. |
+| 6 | Right-only (object assigned to extruder 2): T0 home, T1 in-place `E10` prime, lift, first layer. |
+| 7 | Dual color: park `X30 Y295`, 180 °C standby, lift, alignment (firmware offset). Abort if nozzles collide, T1 is shifted ~25 mm, or purge lands on the part. |

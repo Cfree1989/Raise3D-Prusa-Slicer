@@ -2,10 +2,14 @@
 
 Required before treating any PrusaSlicer G-code as final.
 
-Source: `conradfreeman_filament_orange.gcode` (ideaMaker 5.4.2.8790).
-Proposed output lives in `vendor/Raise3D.ini` printer start/end G-code.
+Sources (ideaMaker 5.4.2.8790):
 
-This mapping is **experimental**. Physical Stage 2–3 tests are still required.
+- Left-only: `conradfreeman_filament_orange.gcode`
+- Dual / two-color: `Multicolor.gcode`
+
+Proposed output lives in `vendor/Raise3D.ini` printer start/end/tool-change G-code.
+
+This mapping is **experimental**. Physical Stage 2–7 tests are still required.
 
 ## Start G-code
 
@@ -44,37 +48,43 @@ ideaMaker emits a slicer-generated retract/Z-hop (`G1 F2400 E…`, `G0 F300 Z…
 
 ## Dual printer (T0 + T1)
 
-There is no ideaMaker dual file yet. Dual start/end **copies the left sequence** and adds gated T1. XY offset is **not** sliced in (`extruder_offset = 0x0,0x0`); factory ~25 mm X lives in printer hardware.
+Source: `Multicolor.gcode`. XY offset is **not** sliced in (`extruder_offset = 0x0,0x0`); factory ~25 mm X lives in printer hardware. Both ideaMaker files only emit `;Extruder Offset #1: 0.000 0.000` (no `#2` comment).
 
-| Dual behavior | PrusaSlicer | Action | Reason |
+| Dual behavior | ideaMaker (`Multicolor.gcode`) | PrusaSlicer | Action |
 | --- | --- | --- | --- |
-| Heat / flow only for used tools | `{if is_extruder_used[0]}` / `{if is_extruder_used[1]}` around `M104`/`M109`/`M221` | Added | Avoid heating a parked nozzle on left-only or right-only jobs |
-| Home | `T0` then `G28 X0 Y0` / `G28 Z0` | Copied | Same as ideaMaker left file |
-| Left purge | `T0`, blob + `G1 X20 Y0 F140 E30` | Copied | Exact ideaMaker purge |
-| Right purge | `T1`, blob + `G1 X40 Y0 F140 E30` | Added | Same purge mechanics, offset in X so it does not sit on the T0 blob. Firmware applies nozzle offset. |
-| Select first printing tool | `{if initial_extruder == 0}T0{else}T1{endif}` | Added | Right-only jobs still home on T0 |
-| Tool-change | `M104 T{previous_extruder} S{temperature-30}` then `M109 T{next_extruder}` | Added | Electronic lift is firmware on the `T` command PrusaSlicer emits. No `M218`, no Marlin `M116` / `P0` |
-| End | Reset flow T0 and T1, `M1002`, `M104 T0/T1 S0`, then ideaMaker relative wipe / `G28 X0 Y0` / `M84` | Copied + T1 off | Left end plus right heater off |
-| Wipe tower | Off | Not used | PrusaSlicer wipe tower requires `use_relative_e_distances=1`. ideaMaker uses `M82` / absolute E. Unused nozzle is firmware electronic lift. |
-| Headers | `;Extruder Offset #2: 0.000 0.000`, filament `#2` comments | Added | RaiseTouch dual metadata; offset comment is 0 because firmware holds the real offset |
+| Heat / flow both tools | `M221`/`M104`/`M109` T0 and T1 at 230 °C | Same commands gated with `is_extruder_used` | Copied; temps parameterized |
+| Home | `T0` then `G28 X0 Y0` / `G28 Z0` / `G1 Z15.0 F300` | Same | Copied |
+| Dual purge | `T1`: `G1 F200 E10` then `G1 F200 E-11.00`. `T0`: `G1 F200 E10` (no XY wipe) | Same when both tools used; first printing tool primed last | Copied. **Not** the left-only `X20 Y0` line |
+| Left-only purge | (left file) blob + `G1 X20 Y0 F140 E30` | Used only when T1 is unused | Copied from left file |
+| Right-only purge | Not in either ideaMaker file | `T1` `G1 F200 E10` (dual T1 blob, no invented `X40 Y0`) | Assumed from dual T1 prime |
+| Unused tool after start | `M104 T1 S180` before layer 0 (T0 prints first) | Same when both tools used | Copied. Standby is **180 °C**, not `temperature-30` |
+| Select first printing tool | Starts on T0 after dual purge | `{if initial_extruder == 0}T0{else}T1{endif}` | Copied |
+| Preheat next tool | `M104 T{next} S230` inserted mid-print before the swap | Not replicated (`autoemit_temperature_commands=0`) | Omitted. `M109` at the swap waits instead |
+| Tool-change | Travel `G0 F9000 X30 Y295`, `G92 E0`, `G1 F1200 E-11`, `M104 T{prev} S180`, `M109 T{next} S230`, `T`, then wipe-tower prime `E11` | Park `X30 Y295`; standby `S180` if previous is 0/1 (skip when `-1`); `M109 T{next_extruder}`; slicer emits `T`; `retract_length_toolchange=11` | Copied park/standby/wait. No `M218`, no Marlin `M116`/`P0` |
+| Wipe tower | `;TYPE:WIPE-TOWER` octagon around ~X96 Y282 | Off | Not replicated. PrusaSlicer wipe tower requires relative E; this printer uses `M82`. 11 mm unretract will blob at the park point |
+| End | `M221` T0 and T1 `S100` twice around `M1002`; `M104 T0/T1 S0`; no bare `M104 S0`; relative wipe; `G28 X0 Y0`; `M84` | Same | Copied from dual file |
+| Headers | Filament `#1` and `#2`; no Offset `#2` | Filament `#1`/`#2`; Offset `#1` only | Copied. Names stay `PLA` (printer slot must match) |
 
 ## Uncertain commands — required physical tests
 
 | Uncertainty | Test |
 | --- | --- |
 | `M99123` payload copied from this file | Stage 2–3: note whether Hyper Speed checkmark appears; abort if the printer refuses the file. |
-| `;Filament Name #1: PLA` | Stage 2: confirm it matches the name on the touchscreen filament slot. |
+| `;Filament Name #1: PLA` | Stage 2: confirm it matches the name on the touchscreen filament slot. ideaMaker dual file uses `[Raise3D] PLA`. |
 | T0-only preheat (no T1) | Stage 3: confirm left nozzle lifts/prints without forcing a T1 heat. |
-| Purge blob at homed origin then `X20 Y0` | Stage 3: watch first motion; confirm no bed crash and purge is on the plate, not on the clip. |
+| Left-only purge blob at homed origin then `X20 Y0` | Stage 3: watch first motion; confirm no bed crash and purge is on the plate, not on the clip. |
+| Dual in-place purge `F200 E10` / `E-11` (no XY wipe) | Stage 6–7: confirm blobs form at home and do not hit the clip or a parked nozzle. |
 | `SET_VELOCITY_LIMIT ACCEL=5000` without later 2000 drops | Stage 4: compare ringing to the ideaMaker baseline. |
 | `M2000` pause (community, not in this file) | Stage 5 only; do not use on a long print first. |
 | Absolute E (`M82`) under PrusaSlicer Klipper flavor | Stage 2: inspect G-code for mixed relative/absolute E. |
-| Dual T1 purge at `X40 Y0` and firmware 25 mm X offset | Stage 6: watch right nozzle path; abort if it is ~25 mm off the model or hits the left nozzle. |
-| Tool-change standby `temperature-30` then `M109` | Stage 7: confirm unused nozzle lifts and does not ooze onto the part. |
+| Firmware 25 mm X offset with slicer offset 0 | Stage 6: watch right nozzle path; abort if it is ~25 mm off the model or hits the left nozzle. |
+| Tool-change park `X30 Y295`, standby 180 °C, no wipe tower | Stage 7: confirm unused nozzle lifts, `M109` reaches temp, and ooze/purge at park does not land on the part. |
 
 ## Commands remaining Not implemented
 
-- ideaMaker dual / right-only reference G-code (Dual profile is unconfirmed on this machine)
+- ideaMaker right-only reference G-code
+- ideaMaker wipe tower (PrusaSlicer cannot emit it with `M82`)
+- Mid-print next-tool preheat (`M104 T{next} S230` while still printing)
 - Pause/filament-runout recovery beyond documenting `M2000` as community
 - ideaMaker `;Data start` / recover comment block
 - Hyper Speed PLA material profile
