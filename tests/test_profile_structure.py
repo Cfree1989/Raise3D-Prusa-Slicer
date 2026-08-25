@@ -26,7 +26,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.0")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.1")
         self.assertNotIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
         self.assertNotIn("printer:Raise3D Pro2 Plus Hyper Speed 0.4 Left", self.ini)
@@ -63,9 +63,11 @@ class VendorStructureTests(unittest.TestCase):
         self.assertIn("T1", start)
         self.assertIn("G1 F200 E10", start)
         self.assertIn("G1 F200 E-11.00", start)
-        self.assertIn("G1 X20 Y0 F140 E30", start)
+        self.assertIn("G1 X20 Y0 F140 E1", start)
         self.assertNotIn("G1 X40 Y0", start)
         self.assertIn("M104 T1 S180", start)
+        self.assertIn("M83", start)
+        self.assertNotIn("M82", start)
         self.assertIn("G28 X0 Y0", start)
         self.assertIn("G28 Z0", start)
         self.assertIn("M1001", start)
@@ -76,7 +78,8 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(p["retract_length_toolchange"], "11,11")
         self.assertNotIn("M116", p["toolchange_gcode"])
         self.assertNotIn("temperature[previous_extruder]", p["toolchange_gcode"])
-        self.assertIn("G0 F9000 X30.000 Y295.000", p["toolchange_gcode"])
+        self.assertNotIn("X30.000 Y295.000", p["toolchange_gcode"])
+        self.assertNotIn("X96", p["toolchange_gcode"])
         self.assertIn("M104 T0 S180", p["toolchange_gcode"])
         self.assertIn("{if previous_extruder == 0}", p["toolchange_gcode"])
         self.assertIn("M109 T{next_extruder}", p["toolchange_gcode"])
@@ -87,7 +90,7 @@ class VendorStructureTests(unittest.TestCase):
             "compatible_printers_condition"
         ]
         self.assertIn("PRINTER_VARIANT_DUAL", cond)
-        self.assertEqual(printp.get("wipe_tower") or self.ini["print:*common*"]["wipe_tower"], "0")
+        self.assertEqual(printp.get("wipe_tower") or self.ini["print:*common*"]["wipe_tower"], "1")
 
     def test_print_is_xl_layout_capped_at_hyper_fff_l1(self) -> None:
         p = self.ini["print:*common*"]
@@ -102,7 +105,8 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(p["travel_speed"], "150")
         self.assertEqual(p["default_acceleration"], "2500")
         self.assertLessEqual(int(p["travel_acceleration"]), 5000)
-        self.assertEqual(p["wipe_tower"], "0")
+        self.assertEqual(p["wipe_tower"], "1")
+        self.assertNotIn("wipe_tower_x", p)
         filament = self.ini["filament:Generic PLA @Raise3D Pro2 Plus HS"]
         self.assertEqual(filament["filament_max_volumetric_speed"], "15")
 
@@ -138,10 +142,11 @@ class VendorStructureTests(unittest.TestCase):
             "Generic PLA @Raise3D Pro2 Plus HS",
         )
 
-    def test_klipper_flavor_and_no_relative_e(self) -> None:
+    def test_klipper_flavor_and_relative_e(self) -> None:
         common = self.ini["printer:*common*"]
         self.assertEqual(common["gcode_flavor"], "klipper")
-        self.assertEqual(common["use_relative_e_distances"], "0")
+        self.assertEqual(common["use_relative_e_distances"], "1")
+        self.assertIn("G92 E0", common["before_layer_gcode"])
         self.assertEqual(common["autoemit_temperature_commands"], "0")
 
 

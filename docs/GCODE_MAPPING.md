@@ -26,10 +26,10 @@ This mapping is **experimental**. Physical Stage 2–7 tests are still required.
 | `;Bounding Box:…` | Omitted | Omitted | Per-print metadata; PrusaSlicer cannot know it at start. |
 | `M221 T0 S94.00` | `M221 T0 S{extrusion_multiplier[0]*100}` | Changed | 94% is Raise3D PLA compensation, not a generic PLA measurement. Default multiplier 1.00 until calibrated. |
 | `M140 S60` / `M104 T0 S230` / `M109 T0 S230` / `T0` / `M190 S60` | Same commands with `{first_layer_bed_temperature[0]}` and `{first_layer_temperature[0]}` | Copied structure; temps parameterized | Heat **T0 only**, matching this left-only file. Do not heat T1 (MackDan community advice not used here because this file does not). |
-| `G21` `G90` `M82` `M107` | Same | Copied | Units, absolute XYZ, absolute E, fan off. |
+| `G21` `G90` `M82` `M107` | `G21` `G90` `M83` `M107` | Changed | ideaMaker uses absolute E. PrusaSlicer wipe tower requires relative E, so the Dual profile emits `M83`. |
 | `G28 X0 Y0` then `G28 Z0` | Same | Copied | Do not replace with `G28` or add `G29`. |
 | `G1 Z15.0 F300` | Same | Copied | Clearance before purge. |
-| `G92 E0` / `G1 F140 E29` / `G1 X20 Y0 F140 E30` / `G92 E0` | Same | Copied | Exact purge from this machine. Community X5 Y5 purge lines were **not** used. |
+| `G92 E0` / `G1 F140 E29` / `G1 X20 Y0 F140 E30` / `G92 E0` | Same XY; last move is `E1` (relative) | Copied XY; E delta | Exact purge path from this machine. `E30` is absolute-E “go to 30”; under `M83` that extra 1 mm is `E1`. |
 | `G1 F9000.0` / `M117 Printing...` / `M1001` | Same | Copied | Travel feed + start marker. |
 | `SET_VELOCITY_LIMIT ACCEL=5000.00` and `SQUARE_CORNER_VELOCITY=10.00` | Same, once after `M1001` | Copied initial values | ideaMaker later switches ACCEL 2000/5000 during the print. Per-feature switching is **not replicated** (Assumption / physical test). |
 | `G29`, `M92`, `M218`, `M600`, `PRINT_START` macros | — | Omitted | Not in this file. Generic Klipper macros are not authoritative. |
@@ -60,8 +60,8 @@ Source: `Multicolor.gcode`. XY offset is **not** sliced in (`extruder_offset = 0
 | Unused tool after start | `M104 T1 S180` before layer 0 (T0 prints first) | Same when both tools used | Copied. Standby is **180 °C**, not `temperature-30` |
 | Select first printing tool | Starts on T0 after dual purge | `{if initial_extruder == 0}T0{else}T1{endif}` | Copied |
 | Preheat next tool | `M104 T{next} S230` inserted mid-print before the swap | Not replicated (`autoemit_temperature_commands=0`) | Omitted. `M109` at the swap waits instead |
-| Tool-change | Travel `G0 F9000 X30 Y295`, `G92 E0`, `G1 F1200 E-11`, `M104 T{prev} S180`, `M109 T{next} S230`, `T`, then wipe-tower prime `E11` | Park `X30 Y295`; standby `S180` if previous is 0/1 (skip when `-1`); `M109 T{next_extruder}`; slicer emits `T`; `retract_length_toolchange=11` | Copied park/standby/wait. No `M218`, no Marlin `M116`/`P0` |
-| Wipe tower | `;TYPE:WIPE-TOWER` octagon around ~X96 Y282 | Off | Not replicated. PrusaSlicer wipe tower requires relative E; this printer uses `M82`. 11 mm unretract will blob at the park point |
+| Tool-change | Travel `G0 F9000 X30 Y295`, `G92 E0`, `G1 F1200 E-11`, `M104 T{prev} S180`, `M109 T{next} S230`, `T`, then wipe-tower prime `E11` | Standby `S180` if previous is 0/1 (skip when `-1`); `M109 T{next_extruder}`; slicer emits `T` and the wipe tower. `retract_length_toolchange=11` | Copied temps only. **Do not** copy park `X30 Y295` or the octagon. No `M218`, no Marlin `M116`/`P0` |
+| Wipe tower | `;TYPE:WIPE-TOWER` octagon around ~X96 Y282 in this one file | On. Position/shape from PrusaSlicer (plater + print settings). No `wipe_tower_x`/`y` baked in from this file | Copied the *feature* (need a tower for dual). Relative E (`M83`) so PrusaSlicer can emit it |
 | End | `M221` T0 and T1 `S100` twice around `M1002`; `M104 T0/T1 S0`; no bare `M104 S0`; relative wipe; `G28 X0 Y0`; `M84` | Same | Copied from dual file |
 | Headers | Filament `#1` and `#2`; no Offset `#2` | Filament `#1`/`#2`; Offset `#1` only | Copied. Names stay `PLA` (printer slot must match) |
 
@@ -76,14 +76,13 @@ Source: `Multicolor.gcode`. XY offset is **not** sliced in (`extruder_offset = 0
 | Dual in-place purge `F200 E10` / `E-11` (no XY wipe) | Stage 6–7: confirm blobs form at home and do not hit the clip or a parked nozzle. |
 | `SET_VELOCITY_LIMIT ACCEL=5000` without later 2000 drops | Stage 4: compare ringing to the ideaMaker baseline. |
 | `M2000` pause (community, not in this file) | Stage 5 only; do not use on a long print first. |
-| Absolute E (`M82`) under PrusaSlicer Klipper flavor | Stage 2: inspect G-code for mixed relative/absolute E. |
+| Absolute E (`M82`) under PrusaSlicer Klipper flavor | Stage 2: inspect G-code. Dual profile now uses `M83` / relative E for the wipe tower. |
 | Firmware 25 mm X offset with slicer offset 0 | Stage 6: watch right nozzle path; abort if it is ~25 mm off the model or hits the left nozzle. |
-| Tool-change park `X30 Y295`, standby 180 °C, no wipe tower | Stage 7: confirm unused nozzle lifts, `M109` reaches temp, and ooze/purge at park does not land on the part. |
+| Tool-change standby 180 °C + PrusaSlicer wipe tower | Stage 7: confirm unused nozzle lifts, `M109` reaches temp, and the tower is where you placed it on the plater (not ideaMaker’s X30/X96). |
 
 ## Commands remaining Not implemented
 
 - ideaMaker right-only reference G-code
-- ideaMaker wipe tower (PrusaSlicer cannot emit it with `M82`)
 - Mid-print next-tool preheat (`M104 T{next} S230` while still printing)
 - Pause/filament-runout recovery beyond documenting `M2000` as community
 - ideaMaker `;Data start` / recover comment block

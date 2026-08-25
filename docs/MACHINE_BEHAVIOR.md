@@ -93,7 +93,7 @@ Dual file: same shape but `M221` T0 and T1 `S100` twice around `M1002`, `M104 T0
 
 | Sequence | Status |
 | --- | --- |
-| Tool change | Confirmed in `Multicolor.gcode`: park `X30 Y295`, retract 11 mm at `F1200`, standby `M104 T{prev} S180`, wait `M109 T{next} S230`, `T`, wipe-tower prime 11 mm. No `M218`. Electronic lift is firmware. PrusaSlicer copies park/standby/`M109`; wipe tower is not replicated |
+| Tool change | Confirmed in `Multicolor.gcode`: park `X30 Y295`, retract 11 mm at `F1200`, standby `M104 T{prev} S180`, wait `M109 T{next} S230`, `T`, wipe-tower prime 11 mm. No `M218`. Electronic lift is firmware. PrusaSlicer copies standby/`M109` only. Wipe tower position/shape is PrusaSlicer's, not this file's XY |
 | Pause / `M600` / `M2000` | Not present in this file |
 | Recovery block | Present as **comments** after `;Data end` (`Recover start:29` … `Recover end`). Not executable G-code. **Not implemented** as PrusaSlicer custom G-code |
 
@@ -105,7 +105,7 @@ Dual file: same shape but `M221` T0 and T1 `S100` twice around `M1002`, `M104 T0
 | First-layer skirt | `F900` (15 mm/s) | Confirmed |
 | Later print moves | up to `F4500` (75 mm/s) | Confirmed |
 | Retract | 1.5 mm at `F2400` (40 mm/s) | Confirmed |
-| Absolute extruder | `M82` | Confirmed |
+| Absolute extruder | ideaMaker: `M82`. PrusaSlicer Dual profile: `M83` (wipe tower) | ideaMaker confirmed; PrusaSlicer **changed** |
 | Print time comment | 8629 s (~2.4 h) | Confirmed — longer than the requested 20–30 min sample |
 
 ## Community zip files (not authoritative)
@@ -122,5 +122,6 @@ These are 2022 **Marlin** PrusaSlicer profiles for pre-Hyper Speed Pro2/Pro2 Plu
 4. Whether `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later drops to 2000 is acceptable.
 5. Pause/resume (`M2000`) on this Hyper Speed firmware.
 6. Right nozzle and dual-head lift: dual G-code confirmed. Confirm firmware XY offset (do not also slice 25 mm). Dual purge is in-place `E10` at home, not `X40 Y0`. Watch Stage 6–7 for collisions and ~25 mm shift.
-7. Dual tool-change without ideaMaker wipe tower: 11 mm unretract at park `X30 Y295` vs ideaMaker’s wipe tower at ~X96 Y282. Confirm ooze does not hit the part.
-8. PLA temperature, flow, and volumetric limit — not measured. ideaMaker dual standby is 180 °C at print temp 230 °C.
+7. Dual tool-change: PrusaSlicer wipe tower (user-placed) vs ideaMaker’s tower at ~X96 Y282. Confirm the tower is where you put it and ooze does not hit the part.
+8. Relative E (`M83`) vs ideaMaker `M82` — inspect first dual slice for mixed E mode.
+9. PLA temperature, flow, and volumetric limit — not measured. ideaMaker dual standby is 180 °C at print temp 230 °C.
