@@ -4,8 +4,9 @@ Required before treating any PrusaSlicer G-code as final.
 
 Sources (ideaMaker 5.4.2.8790):
 
-- Left-only: `conradfreeman_filament_orange.gcode`
-- Dual / two-color: `Multicolor.gcode`
+- Left-only: `LeftonlyExtruder.gcode`
+- Right-only: `RightonlyExtruder.gcode`
+- Dual / two-color: `MulticolorRaise3d.gcode`
 
 Proposed output lives in `vendor/Raise3D.ini` printer start/end/tool-change G-code.
 
@@ -25,13 +26,13 @@ This mapping is **experimental**. Physical Stage 2–7 tests are still required.
 | `;Firmware: Klipper` | Same | Copied | Confirmed in this file. |
 | `;Bounding Box:…` | Omitted | Omitted | Per-print metadata; PrusaSlicer cannot know it at start. |
 | `M221 T0 S94.00` | `M221 T0 S{extrusion_multiplier[0]*100}` with filament `extrusion_multiplier = 1` | Changed | ideaMaker `[Raise3D] PLA` used 94%. Operator’s proven Prusa PLA uses 100%; start G-code follows the filament multiplier. End G-code still resets `M221 … S100`. |
-| `M140 S60` / `M104 T0 S230` / `M109 T0 S230` / `T0` / `M190 S60` | Same commands with `{first_layer_bed_temperature[0]}` and `{first_layer_temperature[0]}` (filament defaults **215 / 225 / 60**) | Copied structure; temps from operator Prusa PLA | Dual start still heats T0 and T1 when `is_extruder_used`. Left-only skips T1. ideaMaker files were 230 °C. |
+| `M140 S60` / `M104 T0 S230` / `M109 T0 S230` / `T0` / `M190 S60` | Same commands with `{first_layer_bed_temperature[0]}` and `{first_layer_temperature[0]}` (filament defaults **215 / 225 / 60**) | Copied structure; temps from operator Prusa PLA | Dual start still heats T0 and T1 when `is_extruder_used`. Left-only skips T1. Right-only heats **T1 only** then `T1` before `M190`/`G28` (`RightonlyExtruder.gcode`). ideaMaker files were 230 °C. |
 | `G21` `G90` `M82` `M107` | `G21` `G90` `M83` `M107` | Changed | ideaMaker uses absolute E. PrusaSlicer wipe tower requires relative E, so the Dual profile emits `M83`. |
-| `G28 X0 Y0` then `G28 Z0` | Same | Copied | Do not replace with `G28` or add `G29`. |
+| `G28 X0 Y0` then `G28 Z0` | Same | Copied | Do not replace with `G28` or add `G29`. Left/dual home on `T0`. Right-only homes on `T1`. |
 | `G1 Z15.0 F300` | Same | Copied | Clearance before purge. |
 | `G92 E0` / `G1 F140 E29` / `G1 X20 Y0 F140 E30` / `G92 E0` | Same XY; last move is `E1` (relative) | Copied XY; E delta | Exact purge path from this machine. `E30` is absolute-E “go to 30”; under `M83` that extra 1 mm is `E1`. |
 | `G1 F9000.0` / `M117 Printing...` / `M1001` | Same | Copied | Travel feed + start marker. |
-| `SET_VELOCITY_LIMIT ACCEL=5000.00` and `SQUARE_CORNER_VELOCITY=10.00` | Same after `M1001`. Print profiles use print accel **2000** and travel/first-layer **5000**. `ensure_m99123_first.py` rewrites PrusaSlicer `M204 S` to `SET_VELOCITY_LIMIT ACCEL=….00` | Copied dialect + ideaMaker 2000/5000 | PrusaSlicer 2.9.6 Klipper flavor only emits `M204 S` ([GCodeWriter](https://github.com/prusa3d/PrusaSlicer/blob/version_2.9.6/src/libslic3r/GCode/GCodeWriter.cpp)); Klipper accepts `M204 S` or `SET_VELOCITY_LIMIT`. ideaMaker Multicolor toggles ACCEL 2000 (print) / 5000 (travel), ~10k times. XL per-feature 1500/2500/4000 removed. |
+| `SET_VELOCITY_LIMIT ACCEL=5000.00` and `SQUARE_CORNER_VELOCITY=10.00` | Same after `M1001`. Print profiles use print accel **2000** and travel/first-layer **5000**. `ensure_m99123_first.py` rewrites PrusaSlicer `M204 S` to `SET_VELOCITY_LIMIT ACCEL=….00` | Copied dialect + ideaMaker 2000/5000 | PrusaSlicer 2.9.6 Klipper flavor only emits `M204 S` ([GCodeWriter](https://github.com/prusa3d/PrusaSlicer/blob/version_2.9.6/src/libslic3r/GCode/GCodeWriter.cpp)); Klipper accepts `M204 S` or `SET_VELOCITY_LIMIT`. `MulticolorRaise3d.gcode` toggles ACCEL 2000 (print) / 5000 (travel), 5468× / 5469×. XL per-feature 1500/2500/4000 removed. |
 | `G29`, `M92`, `M218`, `M600`, `PRINT_START` macros | — | Omitted | Not in this file. Generic Klipper macros are not authoritative. |
 
 ## End G-code
@@ -41,31 +42,31 @@ ideaMaker emits a slicer-generated retract/Z-hop (`G1 F2400 E…`, `G0 F300 Z…
 | ideaMaker (source) | PrusaSlicer equivalent | Action | Reason |
 | --- | --- | --- | --- |
 | `M221 T0 S100` / `G92 E0` / `M1002` | Same | Copied | Reset flow + end marker. |
-| `M104 T0 S0` / `M221 T0 S100` / `M104 S0` / `M140 S0` / `M107` | Same | Copied | Duplicate heater-off matches this file. |
+| `M104 T0 S0` / `M221 T0 S100` / `M104 S0` / `M140 S0` / `M107` | Same pattern; tool index follows `is_extruder_used` | Copied | Left: T0 + bare `M104 S0`. Right: T1 + bare `M104 S0`. Dual: T0 and T1, **no** bare `M104 S0`. |
 | `G91` / `G1 E-1 F300` / `G1 Z+0.5 E-5 X-20 Y-20 F9000.00` | Same | Copied | Relative retract and wipe. |
 | `G28 X0 Y0` / `M84` / `G90` | Same | Copied | Home XY, disable steppers, restore absolute. |
 | Raise Z to `max_layer_z+5` (izumi) | Omitted | Omitted | Not in this ideaMaker end. Relative `Z+0.5` is what the machine file does. |
 
 ## Dual printer (T0 + T1)
 
-Source: `Multicolor.gcode`. XY offset is **not** sliced in (`extruder_offset = 0x0,0x0`); factory ~25 mm X lives in printer hardware. Both ideaMaker files only emit `;Extruder Offset #1: 0.000 0.000` (no `#2` comment).
+Source: `MulticolorRaise3d.gcode` for dual; `LeftonlyExtruder.gcode` / `RightonlyExtruder.gcode` for single-tool. XY offset is **not** sliced in (`extruder_offset = 0x0,0x0`); factory ~25 mm X lives in printer hardware. ideaMaker files only emit `;Extruder Offset #1: 0.000 0.000` (no `#2` comment).
 
-| Dual behavior | ideaMaker (`Multicolor.gcode`) | PrusaSlicer | Action |
+| Dual behavior | ideaMaker (`MulticolorRaise3d.gcode`) | PrusaSlicer | Action |
 | --- | --- | --- | --- |
 | Heat / flow both tools | `M221`/`M104`/`M109` T0 and T1 at 230 °C, `M221 S94` | Same commands gated with `is_extruder_used`; filament defaults 215/225 °C and 1.00 flow | Copied commands; temps/flow from operator Prusa PLA |
-| Home | `T0` then `G28 X0 Y0` / `G28 Z0` / `G1 Z15.0 F300` | Same | Copied |
+| Home | Dual/left: `T0` then `G28`. Right-only: `T1` then `G28` | `{if is_extruder_used[0]}T0{else}T1{endif}` before `M190`/`G28` | Copied per file |
 | Dual purge | `T1`: `G1 F200 E10` then `G1 F200 E-11.00`. `T0`: `G1 F200 E10` (no XY wipe) | Same when both tools used; first printing tool primed last | Copied. **Not** the left-only `X20 Y0` line |
-| Left-only purge | (left file) blob + `G1 X20 Y0 F140 E30` | Used only when T1 is unused | Copied from left file |
-| Right-only purge | Not in either ideaMaker file | `T1` `G1 F200 E10` (dual T1 blob, no invented `X40 Y0`) | Assumed from dual T1 prime |
+| Left-only purge | `LeftonlyExtruder.gcode`: blob + `G1 X20 Y0 F140 E30` | Used when T1 is unused | Copied from left file |
+| Right-only purge | `RightonlyExtruder.gcode`: heat/select `T1`, same `F140 E29` + `G1 X20 Y0 F140 E30` as left (no `E10`/`E-11`, no `X40 Y0`) | Same XY; last move `E1` under `M83` | Copied. Dual in-place prime is **not** used for T1-only |
 | Unused tool after start | `M104 T1 S180` before layer 0 (T0 prints first) | Same when both tools used | Copied. Standby is **180 °C**, not `temperature-30` |
 | Select first printing tool | Starts on T0 after dual purge | `{if initial_extruder == 0}T0{else}T1{endif}` | Copied |
-| Preheat next tool | `M104 T{next} S230` inserted mid-print before the swap | `ensure_m99123_first.py` inserts `M104 T{n} S{M109}` ~400 lines before each post-`M1001` swap `M109` (skip if the other tool’s stint is shorter than 50 lines). Swap still `M109`. | Copied as post-process. [Prusa placeholders](https://help.prusa3d.com/article/list-of-placeholders_205643): `next_extruder` is tool-change only, not before-layer. Timing is a line-count heuristic, not ideaMaker’s exact gaps. |
+| Preheat next tool | `M104 T{next} S230` inserted mid-print before the swap (gaps **64–2200** lines, median **762**, n=294 in this file) | `ensure_m99123_first.py` inserts `M104 T{n} S{M109}` ~400 lines before each post-`M1001` swap `M109` (skip if the other tool’s stint is shorter than 50 lines). Swap still `M109`. | Copied as post-process. [Prusa placeholders](https://help.prusa3d.com/article/list-of-placeholders_205643): `next_extruder` is tool-change only, not before-layer. Timing is a line-count heuristic, not ideaMaker’s exact gaps. |
 | Tool-change | Travel `G0 F9000 X30 Y295`, `G92 E0`, `G1 F1200 E-11`, `M104 T{prev} S180`, `M109 T{next} S230`, `T`, then wipe-tower prime `E11` | Standby `S180` if previous is 0/1 (skip when `-1`); `M109 T{next_extruder}`; slicer emits `T` and the wipe tower. `retract_length_toolchange=11` | Copied temps only. **Do not** copy park `X30 Y295` or the octagon. No `M218`, no Marlin `M116`/`P0` |
-| Wipe tower | `;TYPE:WIPE-TOWER` octagon around ~X96 Y282 in this one file | On. Default `wipe_tower_x = 50`, `wipe_tower_y = 140` (past T1 keep-out). Drag on the plater. Not ideaMaker’s XY | Copied the *feature* (need a tower for dual). Relative E (`M83`) so PrusaSlicer can emit it |
-| T1 leftmost ~25 mm | ideaMaker dual bounding box stayed right of ~X69 | Slicer offset still `0x0,0x0`. Bed texture stripe + validator (T1 X < 25 after `M1001`). No `extruder_printable_area` (Orca/Bambu only; not in PrusaSlicer 2.9.6) | Copied firmware-offset policy. Keep-out is factory ~25 mm until measured |
-| First layer / skirt | First layer **0.300 mm**, skirt at `F900` (15 mm/s), then 0.200 mm | XL-style: `first_layer_height = 0.2`, `skirts = 0`, `first_layer_speed = 40`, `first_layer_infill_speed = 100` | **Not copied.** Official Prusa profiles use 0.20 mm first layer. Start G-code already purges (left `X20 Y0`, dual in-place `E10`). 15 mm/s is ideaMaker skirt feed, not a firmware limit. |
+| Wipe tower | `;TYPE:WIPE-TOWER` octagon around ~X50 Y241 (X26–X75, Y217–Y266 in this file) | On. Default `wipe_tower_x = 50`, `wipe_tower_y = 140` (past T1 keep-out). Drag on the plater. Not ideaMaker’s XY | Copied the *feature* (need a tower for dual). Relative E (`M83`) so PrusaSlicer can emit it |
+| T1 leftmost ~25 mm | Dual bounding box starts at **X25.384**. T1 print/tower min **X27.3**. T0 tower goes to **X23.9** | Slicer offset still `0x0,0x0`. Bed texture stripe + validator (T1 X < 25 after `M1001`). No `extruder_printable_area` (Orca/Bambu only; not in PrusaSlicer 2.9.6) | Copied firmware-offset policy. This dual file keeps T1 ≥ 27.3; 25 mm remains the factory-offset keep-out |
+| First layer / skirt | First layer **0.300 mm**. Left/right files start on wall (no skirt). Dual file still has skirt at `F900` (15 mm/s), then 0.200 mm | XL-style: `first_layer_height = 0.2`, `skirts = 0`, `first_layer_speed = 40`, `first_layer_infill_speed = 100` | **Not copied.** Official Prusa profiles use 0.20 mm first layer. Start G-code already purges (left/right `X20 Y0`, dual in-place `E10`). 15 mm/s is ideaMaker skirt feed, not a firmware limit. |
 | Print / travel speeds | Mix of 25–150 mm/s print (`F1500`…`F9000` with E); travel `F9000` (150 mm/s) | XL SPEED/STRUCTURAL family, Hyper FFF L1 clip: SPEED walls/infill/max **150**; STRUCTURAL peri **80** / ext **45** (same as XL IS 0.4); travel **150**; filament volumetric **15 mm³/s** | **Not flattened to 75 mm/s.** That would erase SPEED vs STRUCTURAL. ideaMaker already prints at 120 and 150. L1 is 150 mm/s / 15 mm³/s. Thicker SPEED/DRAFT layers are limited by volumetric, not a flat feed cap. |
-| End | `M221` T0 and T1 `S100` twice around `M1002`; `M104 T0/T1 S0`; no bare `M104 S0`; relative wipe; `G28 X0 Y0`; `M84` | Same | Copied from dual file |
+| End | Dual: `M221` T0 and T1 `S100` twice around `M1002`; `M104 T0/T1 S0`; no bare `M104 S0`. Right-only: `M221 T1` / `M104 T1 S0` / `M104 S0`. Then relative wipe; `G28 X0 Y0`; `M84` | Same, gated with `is_extruder_used` | Copied per file |
 | Headers | Filament `#1` and `#2`; no Offset `#2` | Filament `#1`/`#2`; Offset `#1` only | Copied. Names are `[Raise3D] PLA` |
 
 ## Uncertain commands — required physical tests
@@ -76,17 +77,17 @@ Source: `Multicolor.gcode`. XY offset is **not** sliced in (`extruder_offset = 0
 | `;Filament Name #1: [Raise3D] PLA` | Stage 2: confirm the touchscreen slot names still match. |
 | T0-only preheat (no T1) | Stage 3: confirm left nozzle lifts/prints without forcing a T1 heat. |
 | Left-only purge blob at homed origin then `X20 Y0` | Stage 3: watch first motion; confirm no bed crash and purge is on the plate, not on the clip. |
+| Right-only: home on `T1`, same `X20 Y0` wipe with the right nozzle | Stage 6: confirm T1 lifts for home, wipe is on the plate, and first print stays right of ~X25. |
 | Dual in-place purge `F200 E10` / `E-11` (no XY wipe) | Stage 6–7: confirm blobs form at home and do not hit the clip or a parked nozzle. |
 | `SET_VELOCITY_LIMIT ACCEL=5000` without later 2000/5000 travel/print toggling | Stage 4: compare ringing. 0.5.9 emits 2000/5000 via converted M204; count/spacing will not match ideaMaker exactly. |
 | `M2000` pause (community, not in this file) | Stage 5 only; do not use on a long print first. |
 | Absolute E (`M82`) under PrusaSlicer Klipper flavor | Stage 2: inspect G-code. Dual profile now uses `M83` / relative E for the wipe tower. |
 | Firmware 25 mm X offset with slicer offset 0 | Stage 6: watch right nozzle path; abort if it is ~25 mm off the model or hits the left nozzle. |
-| Tool-change standby 180 °C + PrusaSlicer wipe tower | Stage 7: confirm unused nozzle lifts, `M109` reaches temp, and the tower is where you placed it on the plater (not ideaMaker’s X30/X96). |
-| Next-tool `M104` ~400 lines before swap `M109` | Stage 7: confirm the unused nozzle is heating during the other tool’s print; abort if ooze hits the part. Gaps will not match ideaMaker’s 200–2600 lines. |
+| Tool-change standby 180 °C + PrusaSlicer wipe tower | Stage 7: confirm unused nozzle lifts, `M109` reaches temp, and the tower is where you placed it on the plater (not ideaMaker’s ~X50 Y241 octagon / park `X30 Y295`). |
+| Next-tool `M104` ~400 lines before swap `M109` | Stage 7: confirm the unused nozzle is heating during the other tool’s print; abort if ooze hits the part. Gaps will not match ideaMaker’s 64–2200 lines. |
 
 ## Commands remaining Not implemented
 
-- ideaMaker right-only reference G-code
 - Pause/filament-runout recovery beyond documenting `M2000` as community
 - ideaMaker `;Data start` / recover comment block
 - Hyper Speed PLA material profile

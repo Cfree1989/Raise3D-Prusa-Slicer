@@ -1,4 +1,9 @@
-"""Compare ideaMaker reference headers/start/end with a PrusaSlicer G-code file."""
+"""Compare ideaMaker reference headers/start/end with a PrusaSlicer G-code file.
+
+Marker sets are chosen from the candidate so a dual export is not failed for
+missing the left/right X20 Y0 wipe, and a right-only export is not failed for
+missing T0 shutdown.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +11,7 @@ import argparse
 import sys
 from pathlib import Path
 
-MARKERS = (
+COMMON = (
     "M99123",
     ";Dimension:",
     ";Printer Type:",
@@ -15,20 +20,46 @@ MARKERS = (
     "G28 X0 Y0",
     "G28 Z0",
     "G1 Z15.0 F300",
-    "G1 F140 E29",
-    "G1 X20 Y0",
     "M1001",
     "SET_VELOCITY_LIMIT ACCEL=5000.00",
     "SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=10.00",
     "M1002",
-    "M104 T0 S0",
     "M140 S0",
     "M84",
+)
+LEFT_ONLY = (
+    "G1 F140 E29",
+    "G1 X20 Y0",
+    "M104 T0 S0",
+)
+RIGHT_ONLY = (
+    "G1 F140 E29",
+    "G1 X20 Y0",
+    "M104 T1 S0",
+)
+DUAL = (
+    "G1 F200 E10",
+    "G1 F200 E-11.00",
 )
 
 
 def load(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
+
+
+def markers_for(candidate: str) -> tuple[str, tuple[str, ...]]:
+    """Return (mode, markers). Dual in-place prime wins over the single-tool wipe."""
+    if "G1 F200 E10" in candidate:
+        extra = DUAL
+        if ";Filament Name #2:" in candidate:
+            extra = extra + (";Filament Name #2:",)
+        return "dual", COMMON + extra
+    if "M104 T1 S0" in candidate and "M104 T0 S0" not in candidate:
+        extra = RIGHT_ONLY
+        if ";Filament Name #2:" in candidate:
+            extra = extra + (";Filament Name #2:",)
+        return "right", COMMON + extra
+    return "left", COMMON + LEFT_ONLY
 
 
 def first_n_exec(text: str, n: int = 80) -> list[str]:
@@ -54,9 +85,11 @@ def last_end(text: str, n: int = 30) -> list[str]:
 def compare(reference: Path, candidate: Path) -> int:
     ref = load(reference)
     cand = load(candidate)
-    missing = [m for m in MARKERS if m not in cand]
+    mode, markers = markers_for(cand)
+    missing = [m for m in markers if m not in cand]
     print(f"reference: {reference}")
     print(f"candidate: {candidate}")
+    print(f"marker set: {mode}")
     print()
     if missing:
         print("MISSING expected markers from ideaMaker mapping:")

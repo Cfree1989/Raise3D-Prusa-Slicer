@@ -26,7 +26,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.10")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.13")
         self.assertNotIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
         self.assertNotIn("printer:Raise3D Pro2 Plus Hyper Speed 0.4 Left", self.ini)
@@ -72,6 +72,12 @@ class VendorStructureTests(unittest.TestCase):
         self.assertIn("G1 F200 E-11.00", start)
         self.assertIn("G1 X20 Y0 F140 E1", start)
         self.assertNotIn("G1 X40 Y0", start)
+        self.assertIn("{if is_extruder_used[0]}T0\n{else}T1\n{endif}", start.replace("\\n", "\n"))
+        self.assertIn(
+            "{else}\nT1\nG92 E0\nG1 F140 E29\nG1 X20 Y0 F140 E1\nG92 E0",
+            start.replace("\\n", "\n"),
+        )
+        self.assertNotIn("G1 F200 E-11.00\nG92 E0\n{endif}", start)
         self.assertIn("M104 T1 S180", start)
         self.assertIn("M83", start)
         self.assertNotIn("M82", start)
@@ -93,6 +99,9 @@ class VendorStructureTests(unittest.TestCase):
         self.assertIn("ensure_m99123_first.py", p["toolchange_gcode"])
         self.assertIn("M104 T1 S0", p["end_gcode"])
         self.assertIn("M1002", p["end_gcode"])
+        self.assertIn("is_extruder_used[0]", p["end_gcode"])
+        self.assertIn("is_extruder_used[1]", p["end_gcode"])
+        self.assertIn("M104 S0", p["end_gcode"])
         printp = self.ini["print:0.20mm SPEED @Raise3D Pro2 Plus HS"]
         cond = printp.get("compatible_printers_condition") or self.ini["print:*common*"][
             "compatible_printers_condition"

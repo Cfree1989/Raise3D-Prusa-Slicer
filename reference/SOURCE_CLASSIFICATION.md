@@ -4,8 +4,10 @@
 
 | File | Role |
 | --- | --- |
-| `ideamaker/conradfreeman_filament_orange.gcode` | Known-good Hyper Speed ideaMaker output, left nozzle, PLA |
-| `ideamaker/conradfreeman_filament_orange.data` | ideaMaker metadata; inspect only, do not modify |
+| `ideamaker/LeftonlyExtruder.gcode` | Known-good Hyper Speed ideaMaker output, left nozzle, PLA |
+| `ideamaker/LeftonlyExtruder.data` | ideaMaker metadata; inspect only, do not modify |
+| `ideamaker/RightonlyExtruder.gcode` | Known-good Hyper Speed ideaMaker output, right nozzle, PLA |
+| `ideamaker/RightonlyExtruder.data` | ideaMaker metadata; inspect only, do not modify |
 | `ideamaker/Multicolor.gcode` | Known-good Hyper Speed ideaMaker dual / two-color output, T0+T1, PLA |
 | `ideamaker/Multicolor.data` | ideaMaker metadata; inspect only, do not modify |
 
@@ -31,6 +33,5 @@ Useful community facts (still not a substitute for ideaMaker):
 - Short 20–30 minute PLA ideaMaker file
 - ideaMaker printer/filament/template exports
 - RaiseTouch version screenshot
-- Right-nozzle-only ideaMaker G-code
 - Pause / runout reference file
 - Measured PLA flow, temp, and volumetric-speed results

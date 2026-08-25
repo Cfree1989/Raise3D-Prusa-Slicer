@@ -2,8 +2,9 @@
 
 Sources of truth (ideaMaker 5.4.2.8790):
 
-- `conradfreeman_filament_orange.gcode` — left `T0` only (2026-08-24)
-- `Multicolor.gcode` — dual / two-color `T0`+`T1` (2026-08-25)
+- `LeftonlyExtruder.gcode` — left `T0` only (2026-08-25)
+- `RightonlyExtruder.gcode` — right `T1` only (2026-08-25)
+- `MulticolorRaise3d.gcode` — dual / two-color `T0`+`T1` (2026-08-25)
 
 Matching `.data` files are binary metadata only and were not modified.
 
@@ -33,7 +34,7 @@ This profile is **experimental**. It is not production-ready.
 | Item | Value | Status |
 | --- | --- | --- |
 | Nozzles in `;Dimension:` | `0.400 0.400` | Confirmed |
-| Tools used | Left file: `T0` only. Dual file: `T0` and `T1`, many swaps | Confirmed. Dual profile gates unused tools with `is_extruder_used` |
+| Tools used | Left: `T0` only. Right: `T1` only. Dual: `T0` and `T1`, many swaps | Confirmed. Dual profile gates unused tools with `is_extruder_used` |
 | Filament name | `[Raise3D] PLA` | Confirmed in ideaMaker. PrusaSlicer start G-code now emits the same `#1`/`#2` comments. Wizard preset remains Generic PLA. |
 | Filament diameter | 1.75 mm | Confirmed |
 | Filament compensation | 94% (`M221 T0 S94.00`) | Confirmed in ideaMaker. PrusaSlicer filament preset uses multiplier **1.00** (operator’s proven Prusa PLA). |
@@ -67,34 +68,38 @@ This profile is **experimental**. It is not production-ready.
 | `M218` | No | Do not emit |
 | `G28` | `G28 X0 Y0` then `G28 Z0` at start; `G28 X0 Y0` at end | Confirmed |
 | `G29` | No | Do not emit |
-| `T0` | Yes (both files) | Confirmed |
-| `T1` | Dual file only | Confirmed in `Multicolor.gcode` |
+| `T0` | Left and dual files | Confirmed |
+| `T1` | Right-only and dual files | Confirmed in `RightonlyExtruder.gcode` and `MulticolorRaise3d.gcode` |
 | `G10` / `G11` | No | |
-| `SET_VELOCITY_LIMIT` | `ACCEL=5000`, `ACCEL=2000`, `SQUARE_CORNER_VELOCITY=10` | Confirmed Klipper. ideaMaker Multicolor: 5223×5000 and 5222×2000 (print vs travel). PrusaSlicer 2.9.6 emits `M204 S` instead; post-process converts to `SET_VELOCITY_LIMIT`. Print profiles: 2000 print / 5000 travel and first layer. |
+| `SET_VELOCITY_LIMIT` | `ACCEL=5000`, `ACCEL=2000`, `SQUARE_CORNER_VELOCITY=10` | Confirmed Klipper. `MulticolorRaise3d.gcode`: 5469×5000 and 5468×2000 (print vs travel). PrusaSlicer 2.9.6 emits `M204 S` instead; post-process converts to `SET_VELOCITY_LIMIT`. Print profiles: 2000 print / 5000 travel and first layer. |
 | `M221` | Start `S94`, end `S100` | Confirmed |
 | `M106` | `S0`, `S128`, `S255` | Confirmed; first layer fan off |
 
 ## Start sequence (complete, from this file)
 
-See `tests/fixtures/ideamaker_left_start.gcode`, `tests/fixtures/ideamaker_dual_start.gcode`, and `docs/GCODE_MAPPING.md`.
+See `tests/fixtures/ideamaker_left_start.gcode`, `tests/fixtures/ideamaker_right_start.gcode`, `tests/fixtures/ideamaker_dual_start.gcode`, and `docs/GCODE_MAPPING.md`.
 
 Left file: heat **T0 only**, home X/Y then Z, raise Z to 15 mm, purge at origin → `X20 Y0`, `M1001`, then `SET_VELOCITY_LIMIT`.
 
-Dual file: heat **T0 and T1**, same home, then in-place prime (`T1` `E10`/`E-11` at `F200`, `T0` `E10` at `F200`), `M1001`, `M104 T1 S180`, then `SET_VELOCITY_LIMIT`. No `X20 Y0` wipe.
+Right file: heat **T1 only**, `T1` then the same home and `X20 Y0` wipe (not dual `E10`/`E-11`).
+
+Dual file: heat **T0 and T1**, home on `T0`, then in-place prime (`T1` `E10`/`E-11` at `F200`, `T0` `E10` at `F200`), `M1001`, `M104 T1 S180`, then `SET_VELOCITY_LIMIT`. No `X20 Y0` wipe.
 
 ## End sequence (complete, from this file)
 
-See `tests/fixtures/ideamaker_left_end.gcode` and `tests/fixtures/ideamaker_dual_end.gcode`.
+See `tests/fixtures/ideamaker_left_end.gcode`, `tests/fixtures/ideamaker_right_end.gcode`, and `tests/fixtures/ideamaker_dual_end.gcode`.
 
 Left file: fan off, retract, Z hop, `M221 T0 S100`, `M1002`, heaters off (including bare `M104 S0`), relative retract/wipe, `G28 X0 Y0`, `M84`, `G90`.
 
-Dual file: same shape but `M221` T0 and T1 `S100` twice around `M1002`, `M104 T0 S0` and `M104 T1 S0`, **no** bare `M104 S0`. Dual printer end G-code follows the dual file.
+Right file: same shape with `M221 T1` / `M104 T1 S0` / bare `M104 S0`.
+
+Dual file: `M221` T0 and T1 `S100` twice around `M1002`, `M104 T0 S0` and `M104 T1 S0`, **no** bare `M104 S0`. Dual printer end G-code follows the matching ideaMaker file via `is_extruder_used`.
 
 ## Tool-change / pause / recovery
 
 | Sequence | Status |
 | --- | --- |
-| Tool change | Confirmed in `Multicolor.gcode`: park `X30 Y295`, retract 11 mm at `F1200`, standby `M104 T{prev} S180`, wait `M109 T{next} S230`, `T`, wipe-tower prime 11 mm. Mid-print `M104 T{next} S230` before the swap. No `M218`. Electronic lift is firmware. PrusaSlicer copies standby/`M109`; `ensure_m99123_first.py` inserts next-tool `M104` ~400 lines before `M109`. Wipe tower default X50 Y140 |
+| Tool change | Confirmed in `MulticolorRaise3d.gcode`: park `X30 Y295`, retract 11 mm at `F1200`, standby `M104 T{prev} S180`, wait `M109 T{next} S230`, `T`, wipe-tower prime. Mid-print `M104 T{next} S230` before the swap (gaps 64–2200, median 762). No `M218`. Electronic lift is firmware. PrusaSlicer copies standby/`M109`; `ensure_m99123_first.py` inserts next-tool `M104` ~400 lines before `M109`. Wipe tower default X50 Y140; this ideaMaker file’s octagon is ~X50 Y241 |
 | Pause / `M600` / `M2000` | Not present in this file |
 | Recovery block | Present as **comments** after `;Data end` (`Recover start:29` … `Recover end`). Not executable G-code. **Not implemented** as PrusaSlicer custom G-code |
 
@@ -122,7 +127,7 @@ These are 2022 **Marlin** PrusaSlicer profiles for pre-Hyper Speed Pro2/Pro2 Plu
 3. RaiseTouch firmware version.
 4. Whether PrusaSlicer’s 2000/5000 `SET_VELOCITY_LIMIT` cadence (from converted `M204`) matches ideaMaker ringing. Klipper flavor cannot emit SET_VELOCITY_LIMIT natively.
 5. Pause/resume (`M2000`) on this Hyper Speed firmware.
-6. Right nozzle and dual-head lift: dual G-code confirmed. Confirm firmware XY offset (do not also slice 25 mm). Dual purge is in-place `E10` at home, not `X40 Y0`. Keep T1 paths and the wipe tower off X < 25 mm; measure the real keep-out. Watch Stage 6–7 for collisions and ~25 mm shift.
-7. Dual tool-change: PrusaSlicer wipe tower (default X50 Y140; you can drag) vs ideaMaker’s tower at ~X96 Y282. Confirm the tower is where you put it and ooze does not hit the part.
+6. Right nozzle and dual-head lift: dual G-code confirmed; right-only G-code confirmed (`RightonlyExtruder.gcode`). Confirm firmware XY offset (do not also slice 25 mm). Dual purge is in-place `E10`/`E-11` at home. Right-only uses the same `X20 Y0` wipe as left after homing on T1. Keep T1 paths and the wipe tower off X < 25 mm; measure the real keep-out. Watch Stage 6–7 for collisions and ~25 mm shift.
+7. Dual tool-change: PrusaSlicer wipe tower (default X50 Y140; you can drag) vs ideaMaker’s octagon at ~X50 Y241 in `MulticolorRaise3d.gcode`. Confirm the tower is where you put it and ooze does not hit the part.
 8. Relative E (`M83`) vs ideaMaker `M82` — inspect first dual slice for mixed E mode.
 9. Volumetric limit 15 mm³/s is Hyper FFF L1. Print temps are the operator’s Prusa PLA (215/225 °C, 1.00 flow). ideaMaker was 230 °C / 94%. Dual standby stays 180 °C; filament idle 70 °C is not emitted in tool-change G-code.

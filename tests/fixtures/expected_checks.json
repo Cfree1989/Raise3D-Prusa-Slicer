@@ -1,5 +1,5 @@
 {
-  "reference": "conradfreeman_filament_orange.gcode",
+  "reference": "LeftonlyExtruder.gcode",
   "must_include": [
     "M99123",
     ";Dimension: 305.000 305.000 605.000 0.400 0.400",

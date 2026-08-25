@@ -18,3 +18,6 @@ min_slic3r_version = 2.9.0
 0.5.8 Dual bed texture marks leftmost 25 mm as T1 keep-out (firmware X offset; slicer offset stays 0). Default wipe tower X50 Y140. validate_gcode flags T1 X < 25 mm between M1001 and M1002.
 0.5.9 Print accel 2000 and travel/first-layer 5000 from ideaMaker Multicolor SET_VELOCITY_LIMIT. ensure_m99123_first.py converts PrusaSlicer M204 S to SET_VELOCITY_LIMIT. Validator rejects leftover M204.
 0.5.10 ensure_m99123_first.py inserts M104 next-tool preheat ~400 lines before each swap M109 (ideaMaker Multicolor). next_extruder is not available in layer G-code.
+0.5.11 Right-only start branch uses the full Multicolor T1 in-place prime (E10 then E-11), not blob-only. compare_gcode.py uses left vs dual/right marker sets.
+0.5.12 Right-only matches ideaMaker RightonlyExtruder.gcode: heat/select T1, home on T1, same X20 Y0 wipe as left (not dual E10/E-11). End G-code skips unused-tool M221/M104; single-tool adds bare M104 S0.
+0.5.13 Authoritative ideaMaker sources are LeftonlyExtruder, RightonlyExtruder, and MulticolorRaise3d (replacing conradfreeman orange / Multicolor). Start/end/tool-change sequences unchanged. Dual wipe-tower octagon in this file is ~X50 Y241 (T1 min X 27.3); preheat-to-M109 gaps 64-2200 lines (median 762).

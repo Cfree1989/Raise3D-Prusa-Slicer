@@ -1,4 +1,4 @@
-"""Safety checks for Raise3D Pro2 Plus Hyper Speed G-code (left and dual experimental)."""
+"""Safety checks for Raise3D Pro2 Plus Hyper Speed G-code (left, right, and dual)."""
 
 from __future__ import annotations
 
@@ -52,6 +52,7 @@ def validate(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines()
     has_t0 = False
+    has_t1 = False
     has_m1001 = False
     has_m1002 = False
     has_shutdown_hot = False
@@ -82,6 +83,7 @@ def validate(path: Path) -> list[str]:
             has_t0 = True
             current_tool = 0
         if re.match(r"^T1\b", line, re.I):
+            has_t1 = True
             current_tool = 1
         if upper.startswith("M1001"):
             has_m1001 = True
@@ -139,8 +141,8 @@ def validate(path: Path) -> list[str]:
                 if z > MAX_Z:
                     errors.append(f"line {lineno}: Z {z} exceeds {MAX_Z}")
 
-    if not has_t0:
-        errors.append("missing T0 tool selection")
+    if not has_t0 and not has_t1:
+        errors.append("missing T0 or T1 tool selection")
     if not has_m1001:
         errors.append("missing M1001 start marker")
     if not has_m1002:

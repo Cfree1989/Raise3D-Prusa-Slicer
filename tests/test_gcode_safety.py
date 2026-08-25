@@ -31,9 +31,14 @@ class GcodeSafetyTests(unittest.TestCase):
         errors = validate(FIXTURES / "dual_start_end.gcode")
         self.assertEqual(errors, [], msg="\n".join(errors))
 
+    def test_ideamaker_right_start_end_passes(self) -> None:
+        errors = validate(FIXTURES / "ideamaker_right_start_end.gcode")
+        self.assertEqual(errors, [], msg="\n".join(errors))
+
     def test_ideamaker_dual_start_end_passes(self) -> None:
         errors = validate(FIXTURES / "ideamaker_dual_start_end.gcode")
         self.assertEqual(errors, [], msg="\n".join(errors))
+
 
     def test_start_only_is_not_a_complete_job(self) -> None:
         errors = validate(FIXTURES / "ideamaker_left_start.gcode")
