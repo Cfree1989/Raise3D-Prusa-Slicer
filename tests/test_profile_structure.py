@@ -26,7 +26,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.14")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.15")
         self.assertNotIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
         self.assertNotIn("printer:Raise3D Pro2 Plus Hyper Speed 0.4 Left", self.ini)
@@ -192,6 +192,16 @@ class VendorStructureTests(unittest.TestCase):
         self.assertIn("G92 E0", common["before_layer_gcode"])
         self.assertEqual(common["autoemit_temperature_commands"], "0")
         self.assertEqual(common.get("thumbnails", ""), "")
+
+    def test_print_post_process_runs_hyper_speed_scripts(self) -> None:
+        post = self.ini["print:*common*"]["post_process"]
+        self.assertIn("ensure_m99123_first.py", post)
+        self.assertIn("validate_gcode.py", post)
+        self.assertIn("C:\\\\Python313\\\\python.exe", post)
+        self.assertIn("C:\\\\Repos\\\\Raise3D-Prusa-Slicer\\\\scripts\\\\", post)
+        ensure_at = post.find("ensure_m99123_first.py")
+        validate_at = post.find("validate_gcode.py")
+        self.assertLess(ensure_at, validate_at)
 
 
 if __name__ == "__main__":

@@ -158,24 +158,34 @@ def validate(path: Path) -> list[str]:
     return errors
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("gcode", type=Path)
+    parser.add_argument(
+        "gcode",
+        nargs="?",
+        type=Path,
+        help="G-code path (PrusaSlicer post-process passes this as the last arg)",
+    )
     parser.add_argument("--json", action="store_true")
-    args = parser.parse_args()
-    if not args.gcode.is_file():
-        print(f"not found: {args.gcode}", file=sys.stderr)
+    args, extra = parser.parse_known_args(argv)
+    path = args.gcode
+    if extra:
+        path = Path(extra[-1])
+    if path is None:
+        parser.error("gcode path required")
+    if not path.is_file():
+        print(f"not found: {path}", file=sys.stderr)
         return 1
-    errors = validate(args.gcode)
+    errors = validate(path)
     if args.json:
-        print(json.dumps({"file": str(args.gcode), "ok": not errors, "errors": errors}, indent=2))
+        print(json.dumps({"file": str(path), "ok": not errors, "errors": errors}, indent=2))
     else:
         if errors:
-            print(f"FAIL {args.gcode}")
+            print(f"FAIL {path}")
             for e in errors:
                 print(f"  - {e}")
         else:
-            print(f"PASS {args.gcode}")
+            print(f"PASS {path}")
     return 1 if errors else 0
 
 
