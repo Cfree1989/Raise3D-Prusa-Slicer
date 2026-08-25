@@ -24,7 +24,7 @@ This profile is **experimental**. It is not production-ready.
 | Printer type comment | `RAISE3D Pro2 Plus - Hyper Speed` | Confirmed |
 | Slicer | ideaMaker 5.4.2.8790 | Confirmed |
 | Motion firmware comment | `Firmware: Klipper` | Confirmed |
-| Hyper Speed mode marker | First line is `M99123` plus payload (same payload reported on the [Prusa forum Hyper Speed notes](https://forum.prusa3d.com/forum/prusaslicer/prusa-slicer-profile-for-raise3d-pro2-dual-head-printer/paged/2/)) | Confirmed in this file; **green checkmark / touchscreen unlock is Assumption requiring physical testing** |
+| Hyper Speed mode marker | First line is `M99123` plus payload (same payload reported on the [Prusa forum Hyper Speed notes](https://forum.prusa3d.com/forum/prusaslicer/prusa-slicer-profile-for-raise3d-pro2-dual-head-printer/paged/2/)) | Confirmed in ideaMaker. PrusaSlicer profile disables G-code thumbnails and `scripts/ensure_m99123_first.py` moves `M99123` to line 1. **Green checkmark / touchscreen unlock is still Assumption requiring physical testing** |
 | RaiseTouch version | Not present in G-code or `.data` text | Not implemented (unknown) |
 | Files sliced in Hyper Speed mode | Yes: `M99123` present and printer type includes Hyper Speed | Confirmed |
 

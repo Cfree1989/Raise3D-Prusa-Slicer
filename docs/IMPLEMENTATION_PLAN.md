@@ -4,7 +4,7 @@ Status: **experimental Dual bundle**. Dual start/tool-change/end now matched to 
 
 ## What this pass includes
 
-1. Vendor bundle `vendor/Raise3D.ini` + `vendor/Raise3D.idx` for Configuration Wizard / local vendor drop-in.
+1. Vendor bundle `vendor/Raise3D.ini` + `vendor/Raise3D.idx` for Configuration Wizard / local vendor drop-in. G-code thumbnails off; `scripts/ensure_m99123_first.py` puts `M99123` on line 1 after export.
 2. Importable config bundle `profiles/Raise3D-Pro2Plus-HS-0.4-bundle.ini` (`File → Import → Import Config Bundle`).
 3. Printer: Raise3D Pro2 Plus Hyper Speed 0.4 Dual. Unused tools skipped with `is_extruder_used`.
 4. Filament: Generic PLA 1.75 mm. Temps from Prusa Generic PLA (210/215). Volumetric 15 mm³/s = Pro2 Hyper FFF L1. Assign to both slots.
