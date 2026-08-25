@@ -7,8 +7,8 @@ Status: **experimental Dual bundle**. Not production-ready. Dual has no ideaMake
 1. Vendor bundle `vendor/Raise3D.ini` + `vendor/Raise3D.idx` for Configuration Wizard / local vendor drop-in.
 2. Importable config bundle `profiles/Raise3D-Pro2Plus-HS-0.4-bundle.ini` (`File → Import → Import Config Bundle`).
 3. Printer: Raise3D Pro2 Plus Hyper Speed 0.4 Dual. Unused tools skipped with `is_extruder_used`.
-4. Filament: PLA 1.75 mm. Temps from Prusa generic PLA (210/215). Volumetric 15 mm³/s = Pro2 Hyper FFF L1, not Hyper Speed PLA marketing. Assign to both slots.
-5. Print: 0.20 mm SPEED. Prusa XL IS 0.20 SPEED layout, motion clipped to Pro2 Hyper FFF L1 (150 mm/s, 5000 mm/s², 15 mm³/s). Travel 150 mm/s. Wipe tower off — requires relative E; this printer uses ideaMaker M82.
+4. Filament: Generic PLA, PETG, ABS, ASA, FLEX (Templates + XL 0.4 temps/cooling). PLA volumetric 15 mm³/s = Pro2 Hyper FFF L1; PETG/ABS/ASA/FLEX are lower. Assign to both slots.
+5. Print: XL-style 0.4 mm family (0.10 FAST DETAIL, 0.15/0.20/0.25 SPEED and STRUCTURAL, 0.28 DRAFT). Default 0.20 mm SPEED. Motion clipped to Pro2 Hyper FFF L1 (150 mm/s, 5000 mm/s², 15 mm³/s). Travel 150 mm/s. Wipe tower off — requires relative E; this printer uses ideaMaker M82.
 6. Start/end G-code derived from `conradfreeman_filament_orange.gcode` as mapped in `docs/GCODE_MAPPING.md`, with T1 heat/purge gated.
 7. Tool-change `M104` standby + `M109`, firmware XY offset (`extruder_offset = 0x0,0x0`).
 8. G-code inspect / validate / compare scripts and fixtures.

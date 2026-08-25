@@ -9,12 +9,12 @@ Printer workflow: slice on the PC → copy `.gcode` to USB → start from RaiseT
 | Preset | Name |
 | --- | --- |
 | Printer | Raise3D Pro2 Plus Hyper Speed 0.4 Dual |
-| Filament | PLA |
-| Print | 0.20mm SPEED |
+| Filament | PLA, PETG, ABS, ASA, FLEX |
+| Print | XL-style 0.4 mm family: 0.10 FAST DETAIL, 0.15/0.20/0.25 SPEED and STRUCTURAL, 0.28 DRAFT (default 0.20mm SPEED) |
 
 One printer, two 0.4 mm tools (T0 left, T1 right), like XL 2-tool. Assign filament to both slots. Print left-only, right-only, or both: unused tools are skipped via `is_extruder_used`. The printer firmware applies the ~25 mm X nozzle offset — PrusaSlicer offset is `0x0,0x0` so it is not applied twice. Wipe tower is off: PrusaSlicer only allows it with relative E, and this printer keeps ideaMaker’s `M82` / absolute E.
 
-Print layout and speeds follow Prusa XL IS 0.20 SPEED, clipped to Raise3D Pro2 **Hyper FFF L1**: 150 mm/s print, 5000 mm/s² accel, 15 mm³/s. Travel stays **150 mm/s** (this machine’s ideaMaker / `machine_max_feedrate`). XL values of 170–400 mm/s are not used.
+Print layout follows Prusa XL IS 0.4 (SPEED / STRUCTURAL / DETAIL / DRAFT). Motion is clipped to Raise3D Pro2 **Hyper FFF L1**: 150 mm/s print, 5000 mm/s² accel, 15 mm³/s. Travel stays **150 mm/s** (this machine’s ideaMaker / `machine_max_feedrate`). XL values of 170–400 mm/s are not used. Filament temps follow Prusa Templates / Generic XL 0.4, with volumetric flow at or below L1.
 
 ## Install
 
@@ -23,7 +23,7 @@ Print layout and speeds follow Prusa XL IS 0.20 SPEED, clipped to Raise3D Pro2 *
 1. Copy `vendor/Raise3D.ini` and `vendor/Raise3D.idx` to `%APPDATA%\PrusaSlicer\vendor\`
 2. Restart PrusaSlicer
 3. **Configuration Wizard** → Other FFF → enable **Raise3D (experimental)** → Pro2 Plus Hyper Speed Dual 0.4
-4. Confirm PLA and the matching L1 print profile appear with that printer selected
+4. Confirm PLA/PETG/ABS/ASA/FLEX and the XL-style print profiles appear with that printer selected
 
 Tested against PrusaSlicer **2.9.6**.
 
@@ -31,17 +31,17 @@ Tested against PrusaSlicer **2.9.6**.
 
 1. **File → Import → Import Config Bundle**
 2. Select `vendor/Raise3D.ini`
-3. Select Dual, then PLA and 0.20mm SPEED
+3. Select Dual, then a filament (PLA is default) and a print profile (0.20mm SPEED is default)
 
 ([PrusaSlicer: importing and exporting custom profiles](https://help.prusa3d.com/article/how-to-import-and-export-custom-profiles-in-prusaslicer_382766))
 
 ## Using both extruders
 
 1. Select **Raise3D Pro2 Plus Hyper Speed 0.4 Dual**.
-2. Load **PLA** on filament slot 1 and slot 2 (or only the slot you will print with).
+2. Load the same filament on slot 1 and slot 2 (or only the slot you will print with).
 3. On the plater, set each object’s extruder (1 = left / T0, 2 = right / T1), or paint multi-material.
 4. Slice a small test. Wipe tower stays off (absolute E).
-5. Confirm `;Filament Name #1:` / `#2:` is **PLA** and matches the names loaded on the printer.
+5. Confirm `;Filament Name #1:` / `#2:` matches the names loaded on the printer (PLA, PETG, ABS, ASA, or FLEX).
 
 Right-only: assign the part to extruder 2. Start G-code still homes with T0, then purges and prints T1.
 
@@ -63,8 +63,8 @@ Evidence labels: `docs/MACHINE_BEHAVIOR.md`
 ## Assumptions you must treat as untested
 
 - Copying `M99123` from the ideaMaker file enables Hyper Speed on the touchscreen (forum reports are mixed).
-- `;Filament Name #1: PLA` (and `#2` on Dual) matches the name loaded on **this** printer. If the slot is still `[Raise3D] PLA`, change one of them so they match exactly.
-- PLA at 215/210 °C and 60 °C bed — Prusa generic PLA, not ideaMaker [Raise3D] PLA 230 °C / 94% flow.
+- `;Filament Name #1:` / `#2:` uses `{filament_type}` (PLA, PETG, ABS, ASA, FLEX) and must match the name loaded on **this** printer. If the slot is still `[Raise3D] PLA`, change one of them so they match exactly.
+- PLA at 215/210 °C and 60 °C bed — Prusa generic / Templates PLA, not ideaMaker [Raise3D] PLA 230 °C / 94% flow. PETG/ABS/ASA/FLEX temps follow Templates + Generic XL 0.4.
 - `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later 2000/5000 switching.
 - `M2000` pause (community; not in the ideaMaker file).
 - Dual: electronic lift on `T0`/`T1`, firmware XY offset, T1 purge at `X40 Y0`, and tool-change standby (`temperature-30` then `M109`) — no ideaMaker dual G-code yet.
