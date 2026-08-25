@@ -6,8 +6,8 @@ M99123 /RKIIyAfrgVn63QgWjcMv3w/DQafsD84EnC8915R6MD0Ipw/VGrHawCYdCJaNwKoDQafsD84E
 ;Extruder Offset #1: 0.000 0.000
 ;Printer Type: RAISE3D Pro2 Plus - Hyper Speed
 ;Firmware: Klipper
-;Filament Name #1: PLA
-;Filament Name #2: PLA
+;Filament Name #1: [Raise3D] PLA
+;Filament Name #2: [Raise3D] PLA
 M221 T0 S100
 M104 T0 S205
 M221 T1 S100

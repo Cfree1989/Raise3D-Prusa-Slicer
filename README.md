@@ -41,7 +41,7 @@ Tested against PrusaSlicer **2.9.6**.
 2. Load **Generic PLA** on filament slot 1 and slot 2 (or only the slot you will print with).
 3. On the plater, set each object’s extruder (1 = left / T0, 2 = right / T1), or paint multi-material.
 4. Slice a small test. Wipe tower is on; drag it on the plater (PrusaSlicer sets position/shape). Unused nozzle drops to 180 °C on tool change.
-5. Confirm `;Filament Name #1:` / `#2:` is **PLA** and matches the names loaded on the printer.
+5. Confirm `;Filament Name #1:` / `#2:` is **`[Raise3D] PLA`** and matches the names loaded on the printer.
 
 Right-only: assign the part to extruder 2. Start G-code still homes with T0, then purges and prints T1.
 
@@ -62,7 +62,7 @@ Evidence labels: `docs/MACHINE_BEHAVIOR.md`
 ## Assumptions you must treat as untested
 
 - Copying `M99123` from the ideaMaker file enables Hyper Speed on the touchscreen (forum reports are mixed).
-- `;Filament Name #1: PLA` (and `#2` on Dual) matches the name loaded on **this** printer. If the slot is still `[Raise3D] PLA`, change one of them so they match exactly.
+- `;Filament Name #1: [Raise3D] PLA` (and `#2` on Dual) matches the name loaded on **this** printer. If a slot was renamed, change the G-code comment or the slot so they match exactly.
 - PLA at 215/210 °C and 60 °C bed — Prusa Generic PLA, not ideaMaker [Raise3D] PLA 230 °C / 94% flow.
 - `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later 2000/5000 switching.
 - `M2000` pause (community; not in the ideaMaker file).

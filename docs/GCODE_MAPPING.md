@@ -19,7 +19,7 @@ This mapping is **experimental**. Physical Stage 2–7 tests are still required.
 | `;Sliced by ideaMaker 5.4.2.8790…` | Omitted | Omitted | Lying about the slicer did not clear warnings in [MackDan’s Hyper Speed notes](https://forum.prusa3d.com/forum/prusaslicer/prusa-slicer-profile-for-raise3d-pro2-dual-head-printer/paged/2/). |
 | `;Dimension: 305.000 305.000 605.000 0.400 0.400` | Same comment | Copied | Community: Raise3D Klipper reads this for nozzle-diameter check. Also matches this file. |
 | `;Plate Shape: 0` / `;Origin Center: 0` / `;Extruder Offset #1: 0.000 0.000` | Same | Copied | Present in known-good header. |
-| `;Filament Name #1: [Raise3D] PLA` | `;Filament Name #1: PLA` (filament G-code) | Changed | This sample is `[Raise3D] PLA`. Preset name is generic **PLA**. **Must exactly match the name loaded on the printer** or the touchscreen filament warning appears (community). |
+| `;Filament Name #1: [Raise3D] PLA` | Same (`#2` as well) | Copied | RaiseTouch compares this to the name loaded in the slot. ideaMaker files on this printer use `[Raise3D] PLA`. The PrusaSlicer preset is still labeled Generic PLA. |
 | `;Filament Diameter/Type/#` comments | Emitted from filament start G-code with placeholders | Copied (values parameterized) | Header metadata used by RaiseTouch. |
 | `;Printer Type: RAISE3D Pro2 Plus - Hyper Speed` | Same | Copied | Confirmed in this file. |
 | `;Firmware: Klipper` | Same | Copied | Confirmed in this file. |
@@ -63,14 +63,14 @@ Source: `Multicolor.gcode`. XY offset is **not** sliced in (`extruder_offset = 0
 | Tool-change | Travel `G0 F9000 X30 Y295`, `G92 E0`, `G1 F1200 E-11`, `M104 T{prev} S180`, `M109 T{next} S230`, `T`, then wipe-tower prime `E11` | Standby `S180` if previous is 0/1 (skip when `-1`); `M109 T{next_extruder}`; slicer emits `T` and the wipe tower. `retract_length_toolchange=11` | Copied temps only. **Do not** copy park `X30 Y295` or the octagon. No `M218`, no Marlin `M116`/`P0` |
 | Wipe tower | `;TYPE:WIPE-TOWER` octagon around ~X96 Y282 in this one file | On. Position/shape from PrusaSlicer (plater + print settings). No `wipe_tower_x`/`y` baked in from this file | Copied the *feature* (need a tower for dual). Relative E (`M83`) so PrusaSlicer can emit it |
 | End | `M221` T0 and T1 `S100` twice around `M1002`; `M104 T0/T1 S0`; no bare `M104 S0`; relative wipe; `G28 X0 Y0`; `M84` | Same | Copied from dual file |
-| Headers | Filament `#1` and `#2`; no Offset `#2` | Filament `#1`/`#2`; Offset `#1` only | Copied. Names stay `PLA` (printer slot must match) |
+| Headers | Filament `#1` and `#2`; no Offset `#2` | Filament `#1`/`#2`; Offset `#1` only | Copied. Names are `[Raise3D] PLA` |
 
 ## Uncertain commands — required physical tests
 
 | Uncertainty | Test |
 | --- | --- |
 | `M99123` payload copied from this file | Stage 2–3: note whether Hyper Speed checkmark appears; abort if the printer refuses the file. |
-| `;Filament Name #1: PLA` | Stage 2: confirm it matches the name on the touchscreen filament slot. ideaMaker dual file uses `[Raise3D] PLA`. |
+| `;Filament Name #1: [Raise3D] PLA` | Stage 2: confirm the touchscreen slot names still match. |
 | T0-only preheat (no T1) | Stage 3: confirm left nozzle lifts/prints without forcing a T1 heat. |
 | Left-only purge blob at homed origin then `X20 Y0` | Stage 3: watch first motion; confirm no bed crash and purge is on the plate, not on the clip. |
 | Dual in-place purge `F200 E10` / `E-11` (no XY wipe) | Stage 6–7: confirm blobs form at home and do not hit the clip or a parked nozzle. |

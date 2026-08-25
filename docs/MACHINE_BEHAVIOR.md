@@ -34,7 +34,7 @@ This profile is **experimental**. It is not production-ready.
 | --- | --- | --- |
 | Nozzles in `;Dimension:` | `0.400 0.400` | Confirmed |
 | Tools used | Left file: `T0` only. Dual file: `T0` and `T1`, many swaps | Confirmed. Dual profile gates unused tools with `is_extruder_used` |
-| Filament name | `[Raise3D] PLA` | Confirmed — **not** the generic PLA preset name |
+| Filament name | `[Raise3D] PLA` | Confirmed in ideaMaker. PrusaSlicer start G-code now emits the same `#1`/`#2` comments. Wizard preset remains Generic PLA. |
 | Filament diameter | 1.75 mm | Confirmed |
 | Filament compensation | 94% (`M221 T0 S94.00`) | Confirmed for Raise3D PLA; **do not treat as generic PLA calibration** |
 | First-layer nozzle / bed | `M109 T0 S230` / `M190 S60` | Confirmed for this Raise3D PLA slice |
@@ -117,7 +117,7 @@ These are 2022 **Marlin** PrusaSlicer profiles for pre-Hyper Speed Pro2/Pro2 Plu
 ## Uncertainties (do not silently resolve)
 
 1. Whether copying `M99123` plus `;Printer Type: RAISE3D Pro2 Plus - Hyper Speed` produces the touchscreen Hyper Speed checkmark.
-2. Exact filament name loaded on **this** printer vs `[Raise3D] PLA` vs `PLA`.
+2. Printer slot names must still be `[Raise3D] PLA` (G-code now emits that; a renamed slot will still warn).
 3. RaiseTouch firmware version.
 4. Whether `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later drops to 2000 is acceptable.
 5. Pause/resume (`M2000`) on this Hyper Speed firmware.
