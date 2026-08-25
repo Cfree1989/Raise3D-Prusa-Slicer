@@ -20,7 +20,7 @@ Print layout follows Prusa XL IS 0.4 (SPEED / STRUCTURAL / DETAIL / DRAFT). Moti
 
 ### A. Configuration Wizard (vendor bundle)
 
-1. Copy `vendor/Raise3D.ini` and `vendor/Raise3D.idx` to `%APPDATA%\PrusaSlicer\vendor\`
+1. Copy `vendor/Raise3D.ini`, `vendor/Raise3D.idx`, and the `vendor/Raise3D/` folder (bed texture) to `%APPDATA%\PrusaSlicer\vendor\`
 2. Restart PrusaSlicer
 3. **Configuration Wizard** → Other FFF → enable **Raise3D (experimental)** → Pro2 Plus Hyper Speed Dual 0.4
 4. Confirm Generic PLA and the XL-style print profiles appear with that printer selected
@@ -33,6 +33,8 @@ Tested against PrusaSlicer **2.9.6**.
 2. Select `vendor/Raise3D.ini`
 3. Select Dual, then Generic PLA and a print profile (0.20mm SPEED is default)
 
+Import Config Bundle does not install `vendor/Raise3D/PRO2PLUS_HS_DUAL_texture.svg`. Copy that folder as in A if you want the orange T1 keep-out stripe on the plater. Default wipe tower X50 Y140 still applies.
+
 ([PrusaSlicer: importing and exporting custom profiles](https://help.prusa3d.com/article/how-to-import-and-export-custom-profiles-in-prusaslicer_382766))
 
 ## Using both extruders
@@ -40,12 +42,12 @@ Tested against PrusaSlicer **2.9.6**.
 1. Select **Raise3D Pro2 Plus Hyper Speed 0.4 Dual**.
 2. Load **Generic PLA** on filament slot 1 and slot 2 (or only the slot you will print with).
 3. On the plater, set each object’s extruder (1 = left / T0, 2 = right / T1), or paint multi-material.
-4. Slice a small test. Wipe tower is on; drag it on the plater (PrusaSlicer sets position/shape). Unused nozzle drops to 180 °C on tool change.
+4. Slice a small test. Wipe tower is on; default is **X50 Y140** so T1 can reach it. Drag it on the plater if you want. Unused nozzle drops to 180 °C on tool change. The orange stripe on the bed is T1 keep-out (leftmost ~25 mm).
 5. Confirm `;Filament Name #1:` / `#2:` is **`[Raise3D] PLA`** and matches the names loaded on the printer.
 
 Right-only: assign the part to extruder 2. Start G-code still homes with T0, then purges and prints T1.
 
-Keep dual-color (and right-extruder) parts off the leftmost ~25 mm of the bed. The right nozzle is offset in firmware and cannot reach the far left of the plate.
+Keep dual-color (and right-extruder) parts **and the wipe tower** off the leftmost ~25 mm of the bed. The right nozzle offset lives in firmware (`extruder_offset` stays `0x0,0x0`). PrusaSlicer 2.9.6 cannot clip T1’s printable polygon; the bed texture is a reminder, and `validate_gcode.py` errors on T1 moves with X < 25 mm after `M1001`. Start-sequence T1 purge at home (before `M1001`) is allowed.
 
 ## Source of truth
 
@@ -66,7 +68,7 @@ Evidence labels: `docs/MACHINE_BEHAVIOR.md`
 - PLA at 215 °C first layer / 225 °C other layers, multiplier 1.00, 60 °C bed — operator’s proven Prusa PLA. ideaMaker `[Raise3D] PLA` was 230 °C / 94%; dual standby stays 180 °C from Multicolor (filament idle 70 °C is not used in Raise3D tool-change G-code).
 - `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later 2000/5000 switching.
 - `M2000` pause (community; not in the ideaMaker file).
-- Dual: electronic lift on `T0`/`T1`, firmware XY offset, in-place dual prime (`F200 E10` / `E-11`), tool-change standby 180 °C. Wipe tower position/shape is PrusaSlicer's (relative E). Mid-print next-tool preheat is not replicated; `M109` waits at the swap.
+- Dual: electronic lift on `T0`/`T1`, firmware XY offset (~25 mm X; slicer offset 0), in-place dual prime (`F200 E10` / `E-11`), tool-change standby 180 °C. Wipe tower default X50 Y140 (relative E). Mid-print next-tool preheat is not replicated; `M109` waits at the swap. The 25 mm keep-out is assumed from factory offset until measured.
 - Relative E (`M83`) instead of ideaMaker `M82`, required for PrusaSlicer's wipe tower. Left-only purge uses `E1` on the `X20 Y0` move (the extra 1 mm after the 29 mm blob).
 
 ## Before you print
@@ -82,7 +84,7 @@ python scripts\compare_gcode.py reference\ideamaker\conradfreeman_filament_orang
 
 Optional: Print Settings → Output options → Post-processing scripts → `python` plus the full path to `scripts\ensure_m99123_first.py` in this repo, so Export runs the move automatically ([PrusaSlicer post-processing](https://help.prusa3d.com/article/post-processing-scripts_283913)). G-code thumbnails are off in this profile so a PNG block is not sitting in front of the header.
 
-3. Read the first ~80 lines and the end sequence. Confirm `M99123` is line 1, `G28 X0 Y0` then `G28 Z0`, `M1001` / `M1002`, no `G29` / `M92` / `M218`. Left-only: purge `X20 Y0`. Dual: in-place `F200 E10` primes; tool-change standby `S180`; wipe tower is wherever you placed it in PrusaSlicer, not ideaMaker’s X96/X30.
+3. Read the first ~80 lines and the end sequence. Confirm `M99123` is line 1, `G28 X0 Y0` then `G28 Z0`, `M1001` / `M1002`, no `G29` / `M92` / `M218`. Left-only: purge `X20 Y0`. Dual: in-place `F200 E10` primes; tool-change standby `S180`; wipe tower starts at X50 Y140 unless you moved it (not ideaMaker’s X96/X30). Validator rejects T1 print moves with X < 25 mm.
 4. Stage 3: supervised first layer (home, heat, purge, Z height, fan, shutdown). Dual: watch the unused nozzle lift, T1 first motion, and the park/prime at tool-change.
 5. Do not leave a long job unattended until Stages 3–4 pass. Dual color is Stage 7.
 

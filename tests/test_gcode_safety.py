@@ -74,6 +74,28 @@ class GcodeSafetyTests(unittest.TestCase):
             path.write_text("G28 X0 Y0\n", encoding="utf-8")
             self.assertEqual(rewrite(path), "missing")
 
+    def test_t1_left_keepout_after_m1001_fails(self) -> None:
+        import tempfile
+
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8")
+        poisoned = src.replace("G1 X120 Y100 E8", "G1 X10 Y100 E8", 1)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "t1_keepout.gcode"
+            path.write_text(poisoned, encoding="utf-8")
+            errors = validate(path)
+        joined = "\n".join(errors)
+        self.assertTrue(any("T1" in e and "keep-out" in e for e in errors), joined)
+
+    def test_t0_left_of_keepout_after_m1001_is_ok(self) -> None:
+        import tempfile
+
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8")
+        t0_left = src.replace("G1 X100 Y100 Z0.3 F900", "G1 X10 Y100 Z0.3 F900", 1)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "t0_left.gcode"
+            path.write_text(t0_left, encoding="utf-8")
+            self.assertEqual(validate(path), [], msg="\n".join(validate(path)))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -61,7 +61,8 @@ Source: `Multicolor.gcode`. XY offset is **not** sliced in (`extruder_offset = 0
 | Select first printing tool | Starts on T0 after dual purge | `{if initial_extruder == 0}T0{else}T1{endif}` | Copied |
 | Preheat next tool | `M104 T{next} S230` inserted mid-print before the swap | Not replicated (`autoemit_temperature_commands=0`) | Omitted. `M109` at the swap waits instead |
 | Tool-change | Travel `G0 F9000 X30 Y295`, `G92 E0`, `G1 F1200 E-11`, `M104 T{prev} S180`, `M109 T{next} S230`, `T`, then wipe-tower prime `E11` | Standby `S180` if previous is 0/1 (skip when `-1`); `M109 T{next_extruder}`; slicer emits `T` and the wipe tower. `retract_length_toolchange=11` | Copied temps only. **Do not** copy park `X30 Y295` or the octagon. No `M218`, no Marlin `M116`/`P0` |
-| Wipe tower | `;TYPE:WIPE-TOWER` octagon around ~X96 Y282 in this one file | On. Position/shape from PrusaSlicer (plater + print settings). No `wipe_tower_x`/`y` baked in from this file | Copied the *feature* (need a tower for dual). Relative E (`M83`) so PrusaSlicer can emit it |
+| Wipe tower | `;TYPE:WIPE-TOWER` octagon around ~X96 Y282 in this one file | On. Default `wipe_tower_x = 50`, `wipe_tower_y = 140` (past T1 keep-out). Drag on the plater. Not ideaMaker’s XY | Copied the *feature* (need a tower for dual). Relative E (`M83`) so PrusaSlicer can emit it |
+| T1 leftmost ~25 mm | ideaMaker dual bounding box stayed right of ~X69 | Slicer offset still `0x0,0x0`. Bed texture stripe + validator (T1 X < 25 after `M1001`). No `extruder_printable_area` (Orca/Bambu only; not in PrusaSlicer 2.9.6) | Copied firmware-offset policy. Keep-out is factory ~25 mm until measured |
 | End | `M221` T0 and T1 `S100` twice around `M1002`; `M104 T0/T1 S0`; no bare `M104 S0`; relative wipe; `G28 X0 Y0`; `M84` | Same | Copied from dual file |
 | Headers | Filament `#1` and `#2`; no Offset `#2` | Filament `#1`/`#2`; Offset `#1` only | Copied. Names are `[Raise3D] PLA` |
 

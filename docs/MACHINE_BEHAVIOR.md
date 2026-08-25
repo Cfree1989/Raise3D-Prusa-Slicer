@@ -51,6 +51,7 @@ This profile is **experimental**. It is not production-ready.
 | Plate shape | `;Plate Shape: 0` | Confirmed |
 | This print bounding box | Left: X 101.505–203.495, Y 91.316–213.451, Z 0–43.100. Dual: X 69.430–183.760, Y 49.015–308.595, Z 0–60.900 (wipe tower exceeds 305 mm Y) | Confirmed |
 | Official Pro2 Plus volume | 305 × 305 × 605 mm | [Supported by Raise3D documentation](https://www.raise3d.com/pro2-series/) |
+| T1 keep-out | Leftmost ~25 mm (factory right-nozzle X offset in firmware; slicer XY offset 0) | Assumption requiring physical testing. PrusaSlicer 2.9.6 has no per-tool printable polygon. Bundle uses bed texture + default wipe tower X50 Y140 + validator. |
 | izumi 330 × 327.5 bed | Community Pro2 (not Plus), 2022 | Community-derived; **not used** |
 
 ## Special commands found
@@ -93,7 +94,7 @@ Dual file: same shape but `M221` T0 and T1 `S100` twice around `M1002`, `M104 T0
 
 | Sequence | Status |
 | --- | --- |
-| Tool change | Confirmed in `Multicolor.gcode`: park `X30 Y295`, retract 11 mm at `F1200`, standby `M104 T{prev} S180`, wait `M109 T{next} S230`, `T`, wipe-tower prime 11 mm. No `M218`. Electronic lift is firmware. PrusaSlicer copies standby/`M109` only. Wipe tower position/shape is PrusaSlicer's, not this file's XY |
+| Tool change | Confirmed in `Multicolor.gcode`: park `X30 Y295`, retract 11 mm at `F1200`, standby `M104 T{prev} S180`, wait `M109 T{next} S230`, `T`, wipe-tower prime 11 mm. No `M218`. Electronic lift is firmware. PrusaSlicer copies standby/`M109` only. Wipe tower default X50 Y140 (not this file’s XY) |
 | Pause / `M600` / `M2000` | Not present in this file |
 | Recovery block | Present as **comments** after `;Data end` (`Recover start:29` … `Recover end`). Not executable G-code. **Not implemented** as PrusaSlicer custom G-code |
 
@@ -121,7 +122,7 @@ These are 2022 **Marlin** PrusaSlicer profiles for pre-Hyper Speed Pro2/Pro2 Plu
 3. RaiseTouch firmware version.
 4. Whether `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later drops to 2000 is acceptable.
 5. Pause/resume (`M2000`) on this Hyper Speed firmware.
-6. Right nozzle and dual-head lift: dual G-code confirmed. Confirm firmware XY offset (do not also slice 25 mm). Dual purge is in-place `E10` at home, not `X40 Y0`. Watch Stage 6–7 for collisions and ~25 mm shift.
-7. Dual tool-change: PrusaSlicer wipe tower (user-placed) vs ideaMaker’s tower at ~X96 Y282. Confirm the tower is where you put it and ooze does not hit the part.
+6. Right nozzle and dual-head lift: dual G-code confirmed. Confirm firmware XY offset (do not also slice 25 mm). Dual purge is in-place `E10` at home, not `X40 Y0`. Keep T1 paths and the wipe tower off X < 25 mm; measure the real keep-out. Watch Stage 6–7 for collisions and ~25 mm shift.
+7. Dual tool-change: PrusaSlicer wipe tower (default X50 Y140; you can drag) vs ideaMaker’s tower at ~X96 Y282. Confirm the tower is where you put it and ooze does not hit the part.
 8. Relative E (`M83`) vs ideaMaker `M82` — inspect first dual slice for mixed E mode.
 9. Volumetric limit 15 mm³/s is Hyper FFF L1. Print temps are the operator’s Prusa PLA (215/225 °C, 1.00 flow). ideaMaker was 230 °C / 94%. Dual standby stays 180 °C; filament idle 70 °C is not emitted in tool-change G-code.

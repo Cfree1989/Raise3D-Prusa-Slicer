@@ -8,9 +8,9 @@ Status: **experimental Dual bundle**. Dual start/tool-change/end now matched to 
 2. Importable config bundle `profiles/Raise3D-Pro2Plus-HS-0.4-bundle.ini` (`File → Import → Import Config Bundle`).
 3. Printer: Raise3D Pro2 Plus Hyper Speed 0.4 Dual. Unused tools skipped with `is_extruder_used`.
 4. Filament: Generic PLA 1.75 mm (G-code name `[Raise3D] PLA`). Nozzle 215/225 °C and multiplier 1.00 from the operator’s proven Prusa PLA. Bed 60 °C. Dual standby 180 °C. Volumetric 15 mm³/s = Pro2 Hyper FFF L1. Assign to both slots.
-5. Print: XL-style 0.4 mm family (0.10 FAST DETAIL, 0.15/0.20/0.25 SPEED and STRUCTURAL, 0.28 DRAFT). Default 0.20 mm SPEED. Motion clipped to Pro2 Hyper FFF L1 (150 mm/s, 5000 mm/s², 15 mm³/s). Travel 150 mm/s. Wipe tower on — PrusaSlicer places it; relative E / `M83` (ideaMaker used `M82`).
+5. Print: XL-style 0.4 mm family (0.10 FAST DETAIL, 0.15/0.20/0.25 SPEED and STRUCTURAL, 0.28 DRAFT). Default 0.20 mm SPEED. Motion clipped to Pro2 Hyper FFF L1 (150 mm/s, 5000 mm/s², 15 mm³/s). Travel 150 mm/s. Wipe tower on — default X50 Y140 (past T1 keep-out); relative E / `M83` (ideaMaker used `M82`).
 6. Left-only purge from `conradfreeman_filament_orange.gcode`. Dual start, standby tool-change, and end from `Multicolor.gcode`.
-7. Tool-change standby 180 °C, `M109`, firmware XY offset (`extruder_offset = 0x0,0x0`). Wipe tower position/shape is not copied from ideaMaker.
+7. Tool-change standby 180 °C, `M109`, firmware XY offset (`extruder_offset = 0x0,0x0`). T1 keep-out: bed texture + validator; not a slicer XY offset.
 8. G-code inspect / validate / compare scripts and fixtures.
 9. README with install, Dual usage, assumptions, validation stages, and ideaMaker rollback.
 
@@ -22,6 +22,7 @@ Status: **experimental Dual bundle**. Dual start/tool-change/end now matched to 
 - Claiming the Hyper Speed touchscreen checkmark works
 - Expanding the bed beyond 305 × 305 × 605
 - Slicer-applied 25 mm X offset (that lives in printer hardware)
+- Per-tool printable area (`extruder_printable_area` is Orca/Bambu, not PrusaSlicer 2.9.6)
 
 ## Source priority
 
@@ -40,4 +41,4 @@ Status: **experimental Dual bundle**. Dual start/tool-change/end now matched to 
 | 4 | Small calibration object vs ideaMaker baseline. |
 | 5 | Pause / runout — only after 3–4 pass. |
 | 6 | Right-only (object assigned to extruder 2): T0 home, T1 in-place `E10` prime, lift, first layer. |
-| 7 | Dual color: 180 °C standby, lift, alignment (firmware offset), PrusaSlicer wipe tower where you placed it. Abort if nozzles collide, T1 is shifted ~25 mm, or purge lands on the part. |
+| 7 | Dual color: 180 °C standby, lift, alignment (firmware offset), wipe tower (default X50 Y140). Abort if nozzles collide, T1 is shifted ~25 mm, or purge lands on the part. |

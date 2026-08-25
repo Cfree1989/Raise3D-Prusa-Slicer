@@ -11,6 +11,8 @@ from pathlib import Path
 BED_X = 305.0
 BED_Y = 305.0
 MAX_Z = 605.0
+# Right nozzle (T1): factory ~25 mm X lives in firmware; slicer offset is 0. Do not also apply M218.
+T1_MIN_X = 25.0
 MAX_HOTEND = 300.0
 MAX_BED = 120.0
 
@@ -54,6 +56,8 @@ def validate(path: Path) -> list[str]:
     relative = False
     max_z = 0.0
     saw_m99123 = False
+    current_tool: int | None = None
+    in_print = False
 
     if lines and lines[0].startswith("M99123"):
         saw_m99123 = True
@@ -70,12 +74,17 @@ def validate(path: Path) -> list[str]:
         if not line:
             continue
         upper = line.upper()
-        if upper.startswith("T0"):
+        if re.match(r"^T0\b", line, re.I):
             has_t0 = True
+            current_tool = 0
+        if re.match(r"^T1\b", line, re.I):
+            current_tool = 1
         if upper.startswith("M1001"):
             has_m1001 = True
+            in_print = True
         if upper.startswith("M1002"):
             has_m1002 = True
+            in_print = False
         if re.match(r"^M104\b", line, re.I) and re.search(r"\bS0(?:\.0+)?\b", line, re.I):
             has_shutdown_hot = True
         if re.match(r"^M140\b", line, re.I) and re.search(r"\bS0(?:\.0+)?\b", line, re.I):
@@ -109,6 +118,11 @@ def validate(path: Path) -> list[str]:
                 x = float(xm.group(1))
                 if x < -5 or x > BED_X + 5:
                     errors.append(f"line {lineno}: X {x} outside 0..{BED_X} (with 5 mm margin)")
+                if in_print and current_tool == 1 and x < T1_MIN_X:
+                    errors.append(
+                        f"line {lineno}: T1 X {x} is left of {T1_MIN_X:g} mm keep-out "
+                        "(right nozzle firmware offset; start purge before M1001 is allowed)"
+                    )
             if ym:
                 y = float(ym.group(1))
                 if y < -5 or y > BED_Y + 5:
