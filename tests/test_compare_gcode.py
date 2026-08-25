@@ -49,6 +49,19 @@ class CompareGcodeTests(unittest.TestCase):
         missing = [m for m in markers if m not in cand]
         self.assertEqual(missing, [])
 
+    def test_prusaslicer_config_footer_does_not_make_left_slice_dual(self) -> None:
+        cand = (
+            "M99123 x\n;Dimension:\n;Printer Type:\n;Firmware:\n;Filament Name #1:\n"
+            "G28 X0 Y0\nG28 Z0\nG1 Z15.0 F300\nG1 F140 E29\nG1 X20 Y0 F140 E1\n"
+            "M1001\nSET_VELOCITY_LIMIT ACCEL=5000.00\n"
+            "SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=10.00\nM1002\nM104 T0 S0\nM140 S0\nM84\n"
+            "; prusaslicer_config = begin\n"
+            "; start_gcode = T1\\nG1 F200 E10\\nG1 F200 E-11.00\n"
+        )
+        mode, markers = markers_for(cand)
+        self.assertEqual(mode, "left")
+        self.assertTrue(all(m in markers for m in LEFT_ONLY))
+
 
 if __name__ == "__main__":
     unittest.main()

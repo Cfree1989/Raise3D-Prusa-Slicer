@@ -47,8 +47,18 @@ def load(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
 
 
+def executable_gcode(text: str) -> str:
+    """Drop ideaMaker ;Data start and PrusaSlicer config dump (contains unused start_gcode)."""
+    for marker in ("; prusaslicer_config = begin", ";Data start"):
+        i = text.find(marker)
+        if i != -1:
+            text = text[:i]
+    return text
+
+
 def markers_for(candidate: str) -> tuple[str, tuple[str, ...]]:
     """Return (mode, markers). Dual in-place prime wins over the single-tool wipe."""
+    candidate = executable_gcode(candidate)
     if "G1 F200 E10" in candidate:
         extra = DUAL
         if ";Filament Name #2:" in candidate:
