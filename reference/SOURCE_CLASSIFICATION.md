@@ -26,9 +26,9 @@ Useful community facts (still not a substitute for ideaMaker):
 
 ## Missing evidence
 
-- Short 20–30 minute Overture PLA ideaMaker file
+- Short 20–30 minute PLA ideaMaker file
 - ideaMaker printer/filament/template exports
 - RaiseTouch version screenshot
-- Right-nozzle and dual-extrusion ideaMaker G-code
+- Right-nozzle and dual-extrusion ideaMaker G-code (Dual PrusaSlicer profile exists; still unconfirmed against ideaMaker)
 - Pause / runout reference file
-- Measured Overture flow, temp, and volumetric-speed results
+- Measured PLA flow, temp, and volumetric-speed results

@@ -1,4 +1,4 @@
-"""Safety checks for Raise3D Pro2 Plus Hyper Speed G-code (left-extruder experimental)."""
+"""Safety checks for Raise3D Pro2 Plus Hyper Speed G-code (left and dual experimental)."""
 
 from __future__ import annotations
 
@@ -24,9 +24,7 @@ FORBIDDEN = [
     (re.compile(r"^SET_HEATER_TEMPERATURE\b", re.I), "generic Klipper heater helper not in reference"),
 ]
 SUSPICIOUS = [
-    (re.compile(r"^T1\b", re.I), "T1/right tool — dual not implemented in first pass"),
     (re.compile(r"^G28\s*$", re.I), "bare G28 (reference homes X/Y then Z separately)"),
-    (re.compile(r"^M104\s+T1\b", re.I), "T1 heat command — not in left-only ideaMaker file"),
 ]
 
 

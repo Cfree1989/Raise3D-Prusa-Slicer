@@ -29,14 +29,14 @@ This profile is **experimental**. It is not production-ready.
 | Item | Value | Status |
 | --- | --- | --- |
 | Nozzles in `;Dimension:` | `0.400 0.400` | Confirmed |
-| Tools used | `T0` once at start; no `T1` | Confirmed left-only |
-| Filament name | `[Raise3D] PLA` | Confirmed — **not Overture PLA** |
+| Tools used | `T0` once at start; no `T1` | Confirmed left-only in this file. Dual printer profile adds gated T1 (Assumption requiring physical testing) |
+| Filament name | `[Raise3D] PLA` | Confirmed — **not** the generic PLA preset name |
 | Filament diameter | 1.75 mm | Confirmed |
-| Filament compensation | 94% (`M221 T0 S94.00`) | Confirmed for Raise3D PLA; **do not treat as Overture calibration** |
+| Filament compensation | 94% (`M221 T0 S94.00`) | Confirmed for Raise3D PLA; **do not treat as generic PLA calibration** |
 | First-layer nozzle / bed | `M109 T0 S230` / `M190 S60` | Confirmed for this Raise3D PLA slice |
 | First layer height | 0.300 mm then 0.200 mm | Confirmed |
 | Copperhead hotends | Not mentioned in G-code | Assumption (operator-stated hardware) |
-| Overture PLA temps / flow / retract | Not in this file | Assumption requiring physical testing |
+| PLA temps / flow / retract | Not in this file | Assumption requiring physical testing |
 
 ## Geometry
 
@@ -63,7 +63,7 @@ This profile is **experimental**. It is not production-ready.
 | `G28` | `G28 X0 Y0` then `G28 Z0` at start; `G28 X0 Y0` at end | Confirmed |
 | `G29` | No | Do not emit |
 | `T0` | Once at start | Confirmed |
-| `T1` | No | Right / dual **Not implemented** |
+| `T1` | No | Right / dual: implemented in Dual printer profile; **not confirmed** in ideaMaker G-code |
 | `G10` / `G11` | No | |
 | `SET_VELOCITY_LIMIT` | `ACCEL=5000`, `ACCEL=2000`, `SQUARE_CORNER_VELOCITY=10` | Confirmed Klipper |
 | `M221` | Start `S94`, end `S100` | Confirmed |
@@ -85,7 +85,7 @@ Fan off, retract, Z hop, `M221 T0 S100`, `M1002`, heaters off, relative retract/
 
 | Sequence | Status |
 | --- | --- |
-| Tool change | Not present (left-only file). Dual **Not implemented** |
+| Tool change | Not present in the ideaMaker file. Dual profile: PrusaSlicer `T` + standby `M104` / wait `M109`. Electronic lift is firmware. **Assumption requiring physical testing** |
 | Pause / `M600` / `M2000` | Not present in this file |
 | Recovery block | Present as **comments** after `;Data end` (`Recover start:29` … `Recover end`). Not executable G-code. **Not implemented** as PrusaSlicer custom G-code |
 
@@ -109,9 +109,9 @@ These are 2022 **Marlin** PrusaSlicer profiles for pre-Hyper Speed Pro2/Pro2 Plu
 ## Uncertainties (do not silently resolve)
 
 1. Whether copying `M99123` plus `;Printer Type: RAISE3D Pro2 Plus - Hyper Speed` produces the touchscreen Hyper Speed checkmark.
-2. Exact filament name loaded on **this** printer vs `[Raise3D] PLA` vs `Overture PLA`.
+2. Exact filament name loaded on **this** printer vs `[Raise3D] PLA` vs `PLA`.
 3. RaiseTouch firmware version.
 4. Whether `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later drops to 2000 is acceptable.
 5. Pause/resume (`M2000`) on this Hyper Speed firmware.
-6. Right nozzle and dual-head lift behavior — no reference G-code yet.
-7. Overture PLA temperature, flow, and volumetric limit — not measured.
+6. Right nozzle and dual-head lift: Dual profile exists; no ideaMaker dual G-code. Confirm firmware XY offset (do not also slice 25 mm) and T1 purge at X40 Y0.
+7. PLA temperature, flow, and volumetric limit — not measured.

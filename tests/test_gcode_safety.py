@@ -25,7 +25,10 @@ class GcodeSafetyTests(unittest.TestCase):
         self.assertTrue(any("G29" in e for e in errors), joined)
         self.assertTrue(any("M92" in e for e in errors), joined)
         self.assertTrue(any("M600" in e for e in errors), joined)
-        self.assertTrue(any("T1" in e for e in errors), joined)
+
+    def test_dual_start_end_passes(self) -> None:
+        errors = validate(FIXTURES / "dual_start_end.gcode")
+        self.assertEqual(errors, [], msg="\n".join(errors))
 
     def test_start_only_is_not_a_complete_job(self) -> None:
         errors = validate(FIXTURES / "ideamaker_left_start.gcode")

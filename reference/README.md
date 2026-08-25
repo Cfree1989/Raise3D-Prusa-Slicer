@@ -4,7 +4,7 @@ Drop known-good **ideaMaker** output here. PrusaSlicer start/end G-code, tool ch
 
 Currently present:
 
-- `ideamaker/conradfreeman_filament_orange.gcode` + `.data` — Hyper Speed, left `T0`, `[Raise3D] PLA` (not Overture)
+- `ideamaker/conradfreeman_filament_orange.gcode` + `.data` — Hyper Speed, left `T0`, `[Raise3D] PLA`
 - `community/` — 2022 Prusa forum config zips; **not** Hyper Speed machine evidence (see `SOURCE_CLASSIFICATION.md`)
 
 Place additional files in this folder (filenames can vary; keep the original ideaMaker names if that is easier).
@@ -20,10 +20,10 @@ Place additional files in this folder (filenames can vary; keep the original ide
 
 ## Strongly recommended
 
-- Known-good ideaMaker file sliced for **regular Overture PLA** (not Hyper Speed PLA unless that is what you actually print)
+- Known-good ideaMaker file sliced for **regular PLA** (not Hyper Speed PLA unless that is what you actually print)
 - Same **0.4 mm** nozzles currently installed
-- Right-nozzle `.gcode` (later; not for the first left-only profile)
-- Dual-extrusion `.gcode` (later)
+- Right-nozzle `.gcode` (Dual printer profile exists; still needed to confirm T1)
+- Dual-extrusion `.gcode` (Dual printer profile exists; still needed to confirm T1 purge and tool-change against ideaMaker)
 - A file that includes pause or filament change
 - ideaMaker printer / filament / Hyper Speed template exports
 - Notes or photos of the purge-line location and usable print area
