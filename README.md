@@ -43,7 +43,7 @@ Import Config Bundle does not install `vendor/Raise3D/PRO2PLUS_HS_DUAL_texture.s
 2. Load **Generic PLA** on filament slot 1 and slot 2 (or only the slot you will print with).
 3. On the plater, set each object’s extruder (1 = left / T0, 2 = right / T1), or paint multi-material.
 4. Slice a small test. Wipe tower is on; default is **X50 Y140** so T1 can reach it. Drag it on the plater if you want. Unused nozzle drops to 180 °C on tool change. The orange stripe on the bed is T1 keep-out (leftmost ~25 mm).
-5. Confirm `;Filament Name #1:` / `#2:` is **`[Raise3D] PLA`** and matches the names loaded on the printer.
+5. Confirm `;Filament Name #1:` / `#2:` is **`[Raise3D] PLA`** and matches the names loaded on the printer. Custom G-code writes that with `{"[Raise3D] PLA"}` so PrusaSlicer does not parse `[Raise3D]` as a variable.
 
 Right-only: assign the part to extruder 2. Start G-code heats T1 only, homes on T1, then uses the same `F140 E29` / `X20 Y0` wipe as left-only (from `RightonlyExtruder.gcode`). Dual in-place `E10`/`E-11` is only when both tools are used.
 

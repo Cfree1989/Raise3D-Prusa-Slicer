@@ -21,3 +21,4 @@ min_slic3r_version = 2.9.0
 0.5.11 Right-only start branch uses the full Multicolor T1 in-place prime (E10 then E-11), not blob-only. compare_gcode.py uses left vs dual/right marker sets.
 0.5.12 Right-only matches ideaMaker RightonlyExtruder.gcode: heat/select T1, home on T1, same X20 Y0 wipe as left (not dual E10/E-11). End G-code skips unused-tool M221/M104; single-tool adds bare M104 S0.
 0.5.13 Authoritative ideaMaker sources are LeftonlyExtruder, RightonlyExtruder, and MulticolorRaise3d (replacing conradfreeman orange / Multicolor). Start/end/tool-change sequences unchanged. Dual wipe-tower octagon in this file is ~X50 Y241 (T1 min X 27.3); preheat-to-M109 gaps 64-2200 lines (median 762).
+0.5.14 Escape [Raise3D] PLA in custom G-code as {"[Raise3D] PLA"} so PrusaSlicer does not treat [Raise3D] as a placeholder. Exported comments are still [Raise3D] PLA.

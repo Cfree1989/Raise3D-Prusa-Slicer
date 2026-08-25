@@ -20,7 +20,7 @@ This mapping is **experimental**. Physical Stage 2–7 tests are still required.
 | `;Sliced by ideaMaker 5.4.2.8790…` | Omitted | Omitted | Lying about the slicer did not clear warnings in [MackDan’s Hyper Speed notes](https://forum.prusa3d.com/forum/prusaslicer/prusa-slicer-profile-for-raise3d-pro2-dual-head-printer/paged/2/). |
 | `;Dimension: 305.000 305.000 605.000 0.400 0.400` | Same comment | Copied | Community: Raise3D Klipper reads this for nozzle-diameter check. Also matches this file. |
 | `;Plate Shape: 0` / `;Origin Center: 0` / `;Extruder Offset #1: 0.000 0.000` | Same | Copied | Present in known-good header. |
-| `;Filament Name #1: [Raise3D] PLA` | Same (`#2` as well) | Copied | RaiseTouch compares this to the name loaded in the slot. ideaMaker files on this printer use `[Raise3D] PLA`. The PrusaSlicer preset is still labeled Generic PLA. |
+| `;Filament Name #1: [Raise3D] PLA` | `{"[Raise3D] PLA"}` in custom G-code (emits the same comment). `#2` as well | Copied (escaped) | RaiseTouch compares this to the name loaded in the slot. ideaMaker uses `[Raise3D] PLA`. Bare `[Raise3D]` is a PrusaSlicer placeholder and blocks export. The wizard preset is still labeled Generic PLA. |
 | `;Filament Diameter/Type/#` comments | Emitted from filament start G-code with placeholders | Copied (values parameterized) | Header metadata used by RaiseTouch. |
 | `;Printer Type: RAISE3D Pro2 Plus - Hyper Speed` | Same | Copied | Confirmed in this file. |
 | `;Firmware: Klipper` | Same | Copied | Confirmed in this file. |
