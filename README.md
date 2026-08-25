@@ -8,15 +8,11 @@ Printer workflow: slice on the PC → copy `.gcode` to USB → start from RaiseT
 
 | Preset | Name |
 | --- | --- |
-| Printer | Raise3D Pro2 Plus Hyper Speed 0.4 Left |
 | Printer | Raise3D Pro2 Plus Hyper Speed 0.4 Dual |
 | Filament | PLA |
-| Print | 0.20mm SPEED (Left) |
-| Print | 0.20mm SPEED Dual |
+| Print | 0.20mm SPEED |
 
-**Left** is T0 only and matches the ideaMaker start/end sequence.
-
-**Dual** is two 0.4 mm tools (T0 left, T1 right). Assign filament to both slots. Print left-only, right-only, or both: unused tools are skipped via `is_extruder_used`. The printer firmware applies the ~25 mm X nozzle offset — PrusaSlicer offset is `0x0,0x0` so it is not applied twice. Wipe tower is off: PrusaSlicer only allows it with relative E, and this printer keeps ideaMaker’s `M82` / absolute E.
+One printer, two 0.4 mm tools (T0 left, T1 right), like XL 2-tool. Assign filament to both slots. Print left-only, right-only, or both: unused tools are skipped via `is_extruder_used`. The printer firmware applies the ~25 mm X nozzle offset — PrusaSlicer offset is `0x0,0x0` so it is not applied twice. Wipe tower is off: PrusaSlicer only allows it with relative E, and this printer keeps ideaMaker’s `M82` / absolute E.
 
 Print layout and speeds follow Prusa XL IS 0.20 SPEED, clipped to Raise3D Pro2 **Hyper FFF L1**: 150 mm/s print, 5000 mm/s² accel, 15 mm³/s. Travel stays **150 mm/s** (this machine’s ideaMaker / `machine_max_feedrate`). XL values of 170–400 mm/s are not used.
 
@@ -26,7 +22,7 @@ Print layout and speeds follow Prusa XL IS 0.20 SPEED, clipped to Raise3D Pro2 *
 
 1. Copy `vendor/Raise3D.ini` and `vendor/Raise3D.idx` to `%APPDATA%\PrusaSlicer\vendor\`
 2. Restart PrusaSlicer
-3. **Configuration Wizard** → Other FFF → enable **Raise3D (experimental)** → Pro2 Plus Hyper Speed 0.4 and/or Dual 0.4
+3. **Configuration Wizard** → Other FFF → enable **Raise3D (experimental)** → Pro2 Plus Hyper Speed Dual 0.4
 4. Confirm PLA and the matching L1 print profile appear with that printer selected
 
 Tested against PrusaSlicer **2.9.6**.
@@ -35,7 +31,7 @@ Tested against PrusaSlicer **2.9.6**.
 
 1. **File → Import → Import Config Bundle**
 2. Select `vendor/Raise3D.ini`
-3. Choose Left or Dual, then PLA and the matching L1 print profile
+3. Select Dual, then PLA and 0.20mm SPEED
 
 ([PrusaSlicer: importing and exporting custom profiles](https://help.prusa3d.com/article/how-to-import-and-export-custom-profiles-in-prusaslicer_382766))
 
@@ -44,10 +40,10 @@ Tested against PrusaSlicer **2.9.6**.
 1. Select **Raise3D Pro2 Plus Hyper Speed 0.4 Dual**.
 2. Load **PLA** on filament slot 1 and slot 2 (or only the slot you will print with).
 3. On the plater, set each object’s extruder (1 = left / T0, 2 = right / T1), or paint multi-material.
-4. Slice a small test. Dual print profile enables a wipe tower when both tools are used.
+4. Slice a small test. Wipe tower stays off (absolute E).
 5. Confirm `;Filament Name #1:` / `#2:` is **PLA** and matches the names loaded on the printer.
 
-Right-only: Dual printer, assign the part to extruder 2. Start G-code still homes with T0, then purges and prints T1.
+Right-only: assign the part to extruder 2. Start G-code still homes with T0, then purges and prints T1.
 
 Keep dual-color (and right-extruder) parts off the leftmost ~25 mm of the bed. The right nozzle is offset in firmware and cannot reach the far left of the plate.
 
@@ -68,14 +64,14 @@ Evidence labels: `docs/MACHINE_BEHAVIOR.md`
 
 - Copying `M99123` from the ideaMaker file enables Hyper Speed on the touchscreen (forum reports are mixed).
 - `;Filament Name #1: PLA` (and `#2` on Dual) matches the name loaded on **this** printer. If the slot is still `[Raise3D] PLA`, change one of them so they match exactly.
-- PLA at 205/200 °C and 60 °C bed — **not** the 230 °C / 94% flow from the Raise3D PLA sample.
+- PLA at 215/210 °C and 60 °C bed — Prusa generic PLA, not ideaMaker [Raise3D] PLA 230 °C / 94% flow.
 - `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later 2000/5000 switching.
 - `M2000` pause (community; not in the ideaMaker file).
 - Dual: electronic lift on `T0`/`T1`, firmware XY offset, T1 purge at `X40 Y0`, and tool-change standby (`temperature-30` then `M109`) — no ideaMaker dual G-code yet.
 
 ## Before you print
 
-1. Slice a small part (Left printer, or Dual with the tools you will use).
+1. Slice a small part (assign the tools you will use).
 2. Run:
 
 ```text
