@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from validate_gcode import validate  # noqa: E402
-from ensure_m99123_first import convert_m204_line, rewrite  # noqa: E402
+from ensure_m99123_first import convert_m204_line, insert_next_tool_preheat, rewrite  # noqa: E402
 
 FIXTURES = ROOT / "tests" / "fixtures"
 
@@ -96,6 +96,29 @@ class GcodeSafetyTests(unittest.TestCase):
             self.assertIn("SET_VELOCITY_LIMIT ACCEL=2000.00", out)
             self.assertNotIn("M204", out)
             self.assertEqual(validate(path), [], msg="\n".join(validate(path)))
+
+    def test_next_tool_preheat_inserts_m104_before_swap_wait(self) -> None:
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
+        out, n = insert_next_tool_preheat(src)
+        self.assertEqual(n, 0)
+        self.assertEqual(out, src)
+
+        g1_idx = next(i for i, line in enumerate(src) if line.startswith("G1 X100"))
+        padded = src[: g1_idx + 1] + ["G1 X101 E0.1"] * 500 + src[g1_idx + 1 :]
+        out, n = insert_next_tool_preheat(padded)
+        self.assertEqual(n, 1)
+        pre = [line for line in out if "next-tool preheat" in line]
+        self.assertEqual(len(pre), 1)
+        self.assertIn("M104 T1 S205", pre[0])
+        m1001 = next(i for i, line in enumerate(out) if line.strip() == "M1001")
+        pre_i = next(i for i, line in enumerate(out) if "next-tool preheat" in line)
+        wait_i = next(
+            i for i, line in enumerate(out) if i > m1001 and line.startswith("M109 T1")
+        )
+        self.assertLess(pre_i, wait_i)
+        self.assertGreater(pre_i, m1001)
+        out2, n2 = insert_next_tool_preheat(out)
+        self.assertEqual(n2, 0)
 
     def test_t1_left_keepout_after_m1001_fails(self) -> None:
         import tempfile

@@ -4,13 +4,13 @@ Status: **experimental Dual bundle**. Dual start/tool-change/end now matched to 
 
 ## What this pass includes
 
-1. Vendor bundle `vendor/Raise3D.ini` + `vendor/Raise3D.idx` for Configuration Wizard / local vendor drop-in. G-code thumbnails off; `scripts/ensure_m99123_first.py` puts `M99123` on line 1 and converts `M204 S` to `SET_VELOCITY_LIMIT`.
+1. Vendor bundle `vendor/Raise3D.ini` + `vendor/Raise3D.idx` for Configuration Wizard / local vendor drop-in. G-code thumbnails off; `scripts/ensure_m99123_first.py` puts `M99123` on line 1, converts `M204 S` to `SET_VELOCITY_LIMIT`, and inserts next-tool `M104` before swap `M109`.
 2. Importable config bundle `profiles/Raise3D-Pro2Plus-HS-0.4-bundle.ini` (`File → Import → Import Config Bundle`).
 3. Printer: Raise3D Pro2 Plus Hyper Speed 0.4 Dual. Unused tools skipped with `is_extruder_used`.
 4. Filament: Generic PLA 1.75 mm (G-code name `[Raise3D] PLA`). Nozzle 215/225 °C and multiplier 1.00 from the operator’s proven Prusa PLA. Bed 60 °C. Dual standby 180 °C. Volumetric 15 mm³/s = Pro2 Hyper FFF L1. Assign to both slots.
 5. Print: XL-style 0.4 mm family (0.10 FAST DETAIL, 0.15/0.20/0.25 SPEED and STRUCTURAL, 0.28 DRAFT). Default 0.20 mm SPEED. Motion clipped to Pro2 Hyper FFF L1 (150 mm/s, 5000 mm/s², 15 mm³/s). Travel 150 mm/s. Accel: print 2000 / travel and first layer 5000 (ideaMaker). `ensure_m99123_first.py` converts `M204 S` to `SET_VELOCITY_LIMIT`. Wipe tower on — default X50 Y140 (past T1 keep-out); relative E / `M83` (ideaMaker used `M82`).
 6. Left-only purge from `conradfreeman_filament_orange.gcode`. Dual start, standby tool-change, and end from `Multicolor.gcode`.
-7. Tool-change standby 180 °C, `M109`, firmware XY offset (`extruder_offset = 0x0,0x0`). T1 keep-out: bed texture + validator; not a slicer XY offset.
+7. Tool-change standby 180 °C, `M109`, firmware XY offset (`extruder_offset = 0x0,0x0`). T1 keep-out: bed texture + validator; not a slicer XY offset. Next-tool `M104` via `ensure_m99123_first.py` (~400 lines before swap).
 8. G-code inspect / validate / compare scripts and fixtures.
 9. README with install, Dual usage, assumptions, validation stages, and ideaMaker rollback.
 
@@ -23,6 +23,8 @@ Status: **experimental Dual bundle**. Dual start/tool-change/end now matched to 
 - Expanding the bed beyond 305 × 305 × 605
 - Slicer-applied 25 mm X offset (that lives in printer hardware)
 - Per-tool printable area (`extruder_printable_area` is Orca/Bambu, not PrusaSlicer 2.9.6)
+- ideaMaker first layer 0.30 mm, skirt, and 15 mm/s first-layer feed (print family stays XL: 0.20 mm, no skirt, 40/100 mm/s)
+- Flattening SPEED to 75 mm/s (keep XL SPEED/STRUCTURAL split; Hyper FFF L1 is 150 mm/s and 15 mm³/s)
 
 ## Source priority
 

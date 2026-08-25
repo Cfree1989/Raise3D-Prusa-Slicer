@@ -59,10 +59,12 @@ Source: `Multicolor.gcode`. XY offset is **not** sliced in (`extruder_offset = 0
 | Right-only purge | Not in either ideaMaker file | `T1` `G1 F200 E10` (dual T1 blob, no invented `X40 Y0`) | Assumed from dual T1 prime |
 | Unused tool after start | `M104 T1 S180` before layer 0 (T0 prints first) | Same when both tools used | Copied. Standby is **180 °C**, not `temperature-30` |
 | Select first printing tool | Starts on T0 after dual purge | `{if initial_extruder == 0}T0{else}T1{endif}` | Copied |
-| Preheat next tool | `M104 T{next} S230` inserted mid-print before the swap | Not replicated (`autoemit_temperature_commands=0`) | Omitted. `M109` at the swap waits instead |
+| Preheat next tool | `M104 T{next} S230` inserted mid-print before the swap | `ensure_m99123_first.py` inserts `M104 T{n} S{M109}` ~400 lines before each post-`M1001` swap `M109` (skip if the other tool’s stint is shorter than 50 lines). Swap still `M109`. | Copied as post-process. [Prusa placeholders](https://help.prusa3d.com/article/list-of-placeholders_205643): `next_extruder` is tool-change only, not before-layer. Timing is a line-count heuristic, not ideaMaker’s exact gaps. |
 | Tool-change | Travel `G0 F9000 X30 Y295`, `G92 E0`, `G1 F1200 E-11`, `M104 T{prev} S180`, `M109 T{next} S230`, `T`, then wipe-tower prime `E11` | Standby `S180` if previous is 0/1 (skip when `-1`); `M109 T{next_extruder}`; slicer emits `T` and the wipe tower. `retract_length_toolchange=11` | Copied temps only. **Do not** copy park `X30 Y295` or the octagon. No `M218`, no Marlin `M116`/`P0` |
 | Wipe tower | `;TYPE:WIPE-TOWER` octagon around ~X96 Y282 in this one file | On. Default `wipe_tower_x = 50`, `wipe_tower_y = 140` (past T1 keep-out). Drag on the plater. Not ideaMaker’s XY | Copied the *feature* (need a tower for dual). Relative E (`M83`) so PrusaSlicer can emit it |
 | T1 leftmost ~25 mm | ideaMaker dual bounding box stayed right of ~X69 | Slicer offset still `0x0,0x0`. Bed texture stripe + validator (T1 X < 25 after `M1001`). No `extruder_printable_area` (Orca/Bambu only; not in PrusaSlicer 2.9.6) | Copied firmware-offset policy. Keep-out is factory ~25 mm until measured |
+| First layer / skirt | First layer **0.300 mm**, skirt at `F900` (15 mm/s), then 0.200 mm | XL-style: `first_layer_height = 0.2`, `skirts = 0`, `first_layer_speed = 40`, `first_layer_infill_speed = 100` | **Not copied.** Official Prusa profiles use 0.20 mm first layer. Start G-code already purges (left `X20 Y0`, dual in-place `E10`). 15 mm/s is ideaMaker skirt feed, not a firmware limit. |
+| Print / travel speeds | Mix of 25–150 mm/s print (`F1500`…`F9000` with E); travel `F9000` (150 mm/s) | XL SPEED/STRUCTURAL family, Hyper FFF L1 clip: SPEED walls/infill/max **150**; STRUCTURAL peri **80** / ext **45** (same as XL IS 0.4); travel **150**; filament volumetric **15 mm³/s** | **Not flattened to 75 mm/s.** That would erase SPEED vs STRUCTURAL. ideaMaker already prints at 120 and 150. L1 is 150 mm/s / 15 mm³/s. Thicker SPEED/DRAFT layers are limited by volumetric, not a flat feed cap. |
 | End | `M221` T0 and T1 `S100` twice around `M1002`; `M104 T0/T1 S0`; no bare `M104 S0`; relative wipe; `G28 X0 Y0`; `M84` | Same | Copied from dual file |
 | Headers | Filament `#1` and `#2`; no Offset `#2` | Filament `#1`/`#2`; Offset `#1` only | Copied. Names are `[Raise3D] PLA` |
 
@@ -80,12 +82,14 @@ Source: `Multicolor.gcode`. XY offset is **not** sliced in (`extruder_offset = 0
 | Absolute E (`M82`) under PrusaSlicer Klipper flavor | Stage 2: inspect G-code. Dual profile now uses `M83` / relative E for the wipe tower. |
 | Firmware 25 mm X offset with slicer offset 0 | Stage 6: watch right nozzle path; abort if it is ~25 mm off the model or hits the left nozzle. |
 | Tool-change standby 180 °C + PrusaSlicer wipe tower | Stage 7: confirm unused nozzle lifts, `M109` reaches temp, and the tower is where you placed it on the plater (not ideaMaker’s X30/X96). |
+| Next-tool `M104` ~400 lines before swap `M109` | Stage 7: confirm the unused nozzle is heating during the other tool’s print; abort if ooze hits the part. Gaps will not match ideaMaker’s 200–2600 lines. |
 
 ## Commands remaining Not implemented
 
 - ideaMaker right-only reference G-code
-- Mid-print next-tool preheat (`M104 T{next} S230` while still printing)
 - Pause/filament-runout recovery beyond documenting `M2000` as community
 - ideaMaker `;Data start` / recover comment block
 - Hyper Speed PLA material profile
+- ideaMaker first-layer 0.30 mm / 15 mm/s skirt (print family stays XL)
+- Flattening all print speeds to 75 mm/s (SPEED stays 150 / STRUCTURAL stays XL slower set)
 - `G29` mesh, `M92` steps, `M218` offsets
