@@ -27,7 +27,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.2.1")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.3.0")
         self.assertIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
 
@@ -53,7 +53,7 @@ class VendorStructureTests(unittest.TestCase):
 
     def test_print_and_filament_are_tied_to_left_printer(self) -> None:
         filament = self.ini["filament:PLA @Raise3D Pro2 Plus HS"]
-        printp = self.ini["print:0.20mm L1 Conservative @Raise3D Pro2 Plus HS Left"]
+        printp = self.ini["print:0.20mm SPEED @Raise3D Pro2 Plus HS Left"]
         cond_f = filament.get("compatible_printers_condition") or self.ini["filament:*common*"][
             "compatible_printers_condition"
         ]
@@ -93,10 +93,27 @@ class VendorStructureTests(unittest.TestCase):
         self.assertIn("M109 T{next_extruder}", p["toolchange_gcode"])
         self.assertIn("M104 T1 S0", p["end_gcode"])
         self.assertIn("M1002", p["end_gcode"])
-        printp = self.ini["print:0.20mm L1 Conservative @Raise3D Pro2 Plus HS Dual"]
+        printp = self.ini["print:0.20mm SPEED @Raise3D Pro2 Plus HS Dual"]
         cond = printp.get("compatible_printers_condition") or ""
         self.assertIn("PRINTER_VARIANT_DUAL", cond)
         self.assertEqual(printp["wipe_tower"], "0")
+
+    def test_print_is_xl_layout_capped_at_hyper_fff_l1(self) -> None:
+        p = self.ini["print:*common*"]
+        self.assertEqual(p["perimeters"], "2")
+        self.assertEqual(p["skirts"], "0")
+        self.assertEqual(p["fill_pattern"], "grid")
+        self.assertEqual(p["first_layer_height"], "0.2")
+        self.assertEqual(p["perimeter_generator"], "arachne")
+        self.assertEqual(p["max_print_speed"], "150")
+        self.assertEqual(p["perimeter_speed"], "150")
+        self.assertEqual(p["infill_speed"], "150")
+        self.assertEqual(p["travel_speed"], "150")
+        self.assertEqual(p["default_acceleration"], "2500")
+        self.assertLessEqual(int(p["travel_acceleration"]), 5000)
+        self.assertEqual(p["wipe_tower"], "0")
+        filament = self.ini["filament:PLA @Raise3D Pro2 Plus HS"]
+        self.assertEqual(filament["filament_max_volumetric_speed"], "15")
 
     def test_klipper_flavor_and_no_relative_e(self) -> None:
         common = self.ini["printer:*common*"]

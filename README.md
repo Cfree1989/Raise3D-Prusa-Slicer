@@ -11,12 +11,14 @@ Printer workflow: slice on the PC → copy `.gcode` to USB → start from RaiseT
 | Printer | Raise3D Pro2 Plus Hyper Speed 0.4 Left |
 | Printer | Raise3D Pro2 Plus Hyper Speed 0.4 Dual |
 | Filament | PLA |
-| Print | 0.20mm L1 Conservative (Left) |
-| Print | 0.20mm L1 Conservative Dual |
+| Print | 0.20mm SPEED (Left) |
+| Print | 0.20mm SPEED Dual |
 
 **Left** is T0 only and matches the ideaMaker start/end sequence.
 
 **Dual** is two 0.4 mm tools (T0 left, T1 right). Assign filament to both slots. Print left-only, right-only, or both: unused tools are skipped via `is_extruder_used`. The printer firmware applies the ~25 mm X nozzle offset — PrusaSlicer offset is `0x0,0x0` so it is not applied twice. Wipe tower is off: PrusaSlicer only allows it with relative E, and this printer keeps ideaMaker’s `M82` / absolute E.
+
+Print layout and speeds follow Prusa XL IS 0.20 SPEED, clipped to Raise3D Pro2 **Hyper FFF L1**: 150 mm/s print, 5000 mm/s² accel, 15 mm³/s. Travel stays **150 mm/s** (this machine’s ideaMaker / `machine_max_feedrate`). XL values of 170–400 mm/s are not used.
 
 ## Install
 

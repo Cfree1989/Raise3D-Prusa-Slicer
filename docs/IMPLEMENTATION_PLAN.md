@@ -7,8 +7,8 @@ Status: **experimental Left + Dual bundle**. Not production-ready. Dual has no i
 1. Vendor bundle `vendor/Raise3D.ini` + `vendor/Raise3D.idx` for Configuration Wizard / local vendor drop-in.
 2. Importable config bundle `profiles/Raise3D-Pro2Plus-HS-Left-0.4-bundle.ini` (`File → Import → Import Config Bundle`).
 3. Printers: Raise3D Pro2 Plus Hyper Speed, 0.4 mm, **Left** and **Dual**.
-4. Filament: PLA 1.75 mm (temps conservative; not copied from Hyper Speed Raise3D PLA). Works with both printers.
-5. Print: 0.20 mm L1 conservative (Left) and Dual (wipe tower off — requires relative E; this printer uses ideaMaker M82).
+4. Filament: PLA 1.75 mm. Temps from Prusa generic PLA (210/215). Volumetric 15 mm³/s = Pro2 Hyper FFF L1, not Hyper Speed PLA marketing. Works with both printers.
+5. Print: 0.20 mm SPEED (Left) and Dual. Prusa XL IS 0.20 SPEED layout, motion clipped to Pro2 Hyper FFF L1 (150 mm/s, 5000 mm/s², 15 mm³/s). Travel 150 mm/s. Wipe tower off — requires relative E; this printer uses ideaMaker M82.
 6. Left start/end G-code derived from `conradfreeman_filament_orange.gcode` as mapped in `docs/GCODE_MAPPING.md`.
 7. Dual start/end extends that sequence: heat/purge gated by `is_extruder_used`, tool-change `M104` standby + `M109`, firmware XY offset (`extruder_offset = 0x0,0x0`).
 8. G-code inspect / validate / compare scripts and fixtures.
