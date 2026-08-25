@@ -26,7 +26,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.1")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.2")
         self.assertNotIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
         self.assertNotIn("printer:Raise3D Pro2 Plus Hyper Speed 0.4 Left", self.ini)
@@ -106,6 +106,9 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(p["default_acceleration"], "2500")
         self.assertLessEqual(int(p["travel_acceleration"]), 5000)
         self.assertEqual(p["wipe_tower"], "1")
+        self.assertEqual(p["duplicate_distance"], "6")
+        self.assertEqual(p["support_material_extruder"], "0")
+        self.assertEqual(p["support_material_interface_extruder"], "0")
         self.assertNotIn("wipe_tower_x", p)
         filament = self.ini["filament:Generic PLA @Raise3D Pro2 Plus HS"]
         self.assertEqual(filament["filament_max_volumetric_speed"], "15")
