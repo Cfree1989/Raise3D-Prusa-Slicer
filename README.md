@@ -27,6 +27,8 @@ Print layout follows Prusa XL IS 0.4 (SPEED / STRUCTURAL / DETAIL / DRAFT). Moti
 
 Tested against PrusaSlicer **2.9.6**.
 
+Print profiles run the post-processing scripts with `C:\Windows\py.exe -3` (the Windows Python launcher). That picks the **newest Python 3** on the machine — 3.14 on the lab PCs, 3.13 at home — so the path is not pinned to `C:\Python313\python.exe`. The scripts still live at `C:\Repos\Raise3D-Prusa-Slicer\scripts\`. If slicing fails on post-processing, open a command prompt and check that `py -3 --version` works.
+
 ### B. Import Config Bundle
 
 1. **File → Import → Import Config Bundle**
