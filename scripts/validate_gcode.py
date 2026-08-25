@@ -1,0 +1,165 @@
+"""Safety checks for Raise3D Pro2 Plus Hyper Speed G-code (left-extruder experimental)."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+BED_X = 305.0
+BED_Y = 305.0
+MAX_Z = 605.0
+MAX_HOTEND = 300.0
+MAX_BED = 120.0
+
+FORBIDDEN = [
+    (re.compile(r"^G29\b", re.I), "G29 bed mesh/level is not in the ideaMaker reference"),
+    (re.compile(r"^M92\b", re.I), "M92 would overwrite firmware calibrations"),
+    (re.compile(r"^M218\b", re.I), "M218 offsets are not in the ideaMaker reference"),
+    (re.compile(r"^M600\b", re.I), "M600 is reported not to work on this Klipper conversion"),
+    (re.compile(r"^PRINT_START\b", re.I), "generic Klipper PRINT_START is not authoritative"),
+    (re.compile(r"^BED_MESH", re.I), "bed mesh command is not in the ideaMaker reference"),
+    (re.compile(r"^SET_HEATER_TEMPERATURE\b", re.I), "generic Klipper heater helper not in reference"),
+]
+SUSPICIOUS = [
+    (re.compile(r"^T1\b", re.I), "T1/right tool — dual not implemented in first pass"),
+    (re.compile(r"^G28\s*$", re.I), "bare G28 (reference homes X/Y then Z separately)"),
+    (re.compile(r"^M104\s+T1\b", re.I), "T1 heat command — not in left-only ideaMaker file"),
+]
+
+
+def strip_comment(line: str) -> str:
+    return line.split(";", 1)[0].strip()
+
+
+def temps(line: str) -> list[tuple[str, float]]:
+    found = []
+    if re.match(r"^M10[49]\b", line, re.I) or re.match(r"^M1[49]0\b", line, re.I):
+        for m in re.finditer(r"\bS(-?\d+(?:\.\d+)?)", line, re.I):
+            cmd = line.split()[0].upper()
+            found.append((cmd, float(m.group(1))))
+    return found
+
+
+def validate(path: Path) -> list[str]:
+    errors: list[str] = []
+    text = path.read_text(encoding="utf-8", errors="replace")
+    lines = text.splitlines()
+    has_t0 = False
+    has_m1001 = False
+    has_m1002 = False
+    has_shutdown_hot = False
+    has_shutdown_bed = False
+    has_m84 = False
+    relative = False
+    max_z = 0.0
+    saw_m99123 = False
+
+    if lines and lines[0].startswith("M99123"):
+        saw_m99123 = True
+    else:
+        errors.append("missing M99123 Hyper Speed header on line 1 (required by ideaMaker Hyper Speed files)")
+
+    if ";Dimension:" not in text:
+        errors.append("missing ;Dimension: header comment")
+    if "RAISE3D Pro2 Plus - Hyper Speed" not in text:
+        errors.append("missing ;Printer Type: RAISE3D Pro2 Plus - Hyper Speed")
+
+    for lineno, raw in enumerate(lines, 1):
+        line = strip_comment(raw)
+        if not line:
+            continue
+        upper = line.upper()
+        if upper.startswith("T0"):
+            has_t0 = True
+        if upper.startswith("M1001"):
+            has_m1001 = True
+        if upper.startswith("M1002"):
+            has_m1002 = True
+        if re.match(r"^M104\b", line, re.I) and re.search(r"\bS0(?:\.0+)?\b", line, re.I):
+            has_shutdown_hot = True
+        if re.match(r"^M140\b", line, re.I) and re.search(r"\bS0(?:\.0+)?\b", line, re.I):
+            has_shutdown_bed = True
+        if upper.startswith("M84"):
+            has_m84 = True
+        if upper.startswith("G91"):
+            relative = True
+        if upper.startswith("G90"):
+            relative = False
+
+        for rx, msg in FORBIDDEN:
+            if rx.search(line):
+                errors.append(f"line {lineno}: forbidden: {msg} ({line})")
+        for rx, msg in SUSPICIOUS:
+            if rx.search(line):
+                errors.append(f"line {lineno}: suspicious: {msg} ({line})")
+
+        for cmd, temp in temps(line):
+            if cmd in {"M104", "M109"} and temp > MAX_HOTEND:
+                errors.append(f"line {lineno}: hotend temperature {temp} exceeds {MAX_HOTEND}")
+            if cmd in {"M140", "M190"} and temp > MAX_BED:
+                errors.append(f"line {lineno}: bed temperature {temp} exceeds {MAX_BED}")
+
+        if not relative:
+            xm = re.search(r"\bX(-?\d+(?:\.\d+)?)", line, re.I)
+            ym = re.search(r"\bY(-?\d+(?:\.\d+)?)", line, re.I)
+            zm = re.search(r"\bZ(-?\d+(?:\.\d+)?)", line, re.I)
+            # Homing and purge use Y0 / X20; allow a small negative skirt margin
+            if xm:
+                x = float(xm.group(1))
+                if x < -5 or x > BED_X + 5:
+                    errors.append(f"line {lineno}: X {x} outside 0..{BED_X} (with 5 mm margin)")
+            if ym:
+                y = float(ym.group(1))
+                if y < -5 or y > BED_Y + 5:
+                    errors.append(f"line {lineno}: Y {y} outside 0..{BED_Y} (with 5 mm margin)")
+            if zm:
+                z = float(zm.group(1))
+                max_z = max(max_z, z)
+                if z < -0.05:
+                    errors.append(f"line {lineno}: negative absolute Z {z}")
+                if z > MAX_Z:
+                    errors.append(f"line {lineno}: Z {z} exceeds {MAX_Z}")
+
+    if not has_t0:
+        errors.append("missing T0 tool selection")
+    if not has_m1001:
+        errors.append("missing M1001 start marker")
+    if not has_m1002:
+        errors.append("missing M1002 end marker")
+    if not has_shutdown_hot:
+        errors.append("missing hotend shutdown (M104 S0)")
+    if not has_shutdown_bed:
+        errors.append("missing bed shutdown (M140 S0)")
+    if not has_m84:
+        errors.append("missing M84 (motors off)")
+    if not saw_m99123:
+        pass  # already recorded
+    return errors
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("gcode", type=Path)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+    if not args.gcode.is_file():
+        print(f"not found: {args.gcode}", file=sys.stderr)
+        return 1
+    errors = validate(args.gcode)
+    if args.json:
+        print(json.dumps({"file": str(args.gcode), "ok": not errors, "errors": errors}, indent=2))
+    else:
+        if errors:
+            print(f"FAIL {args.gcode}")
+            for e in errors:
+                print(f"  - {e}")
+        else:
+            print(f"PASS {args.gcode}")
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

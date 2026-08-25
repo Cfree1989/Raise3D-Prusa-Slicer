@@ -1,0 +1,18 @@
+{
+  "reference": "conradfreeman_filament_orange.gcode",
+  "must_include": [
+    "M99123",
+    ";Dimension: 305.000 305.000 605.000 0.400 0.400",
+    ";Printer Type: RAISE3D Pro2 Plus - Hyper Speed",
+    ";Firmware: Klipper",
+    "T0",
+    "G28 X0 Y0",
+    "G28 Z0",
+    "M1001",
+    "M1002",
+    "M84"
+  ],
+  "must_not_include": ["G29", "M92", "M218", "M600"],
+  "bed_mm": [305, 305, 605],
+  "nozzle_mm": [0.4, 0.4]
+}
