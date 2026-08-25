@@ -16,3 +16,4 @@ min_slic3r_version = 2.9.0
 0.5.6 Generic PLA nozzle 230 C and extrusion_multiplier 0.94 from this machine's ideaMaker [Raise3D] PLA files. Bed stays 60 C.
 0.5.7 Generic PLA nozzle 215/225 C and multiplier 1.00 from the operator's proven Prusa PLA. Idle 70 C is a filament setting only; dual standby G-code stays 180 C.
 0.5.8 Dual bed texture marks leftmost 25 mm as T1 keep-out (firmware X offset; slicer offset stays 0). Default wipe tower X50 Y140. validate_gcode flags T1 X < 25 mm between M1001 and M1002.
+0.5.9 Print accel 2000 and travel/first-layer 5000 from ideaMaker Multicolor SET_VELOCITY_LIMIT. ensure_m99123_first.py converts PrusaSlicer M204 S to SET_VELOCITY_LIMIT. Validator rejects leftover M204.

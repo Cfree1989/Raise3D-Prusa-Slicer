@@ -4,11 +4,11 @@ Status: **experimental Dual bundle**. Dual start/tool-change/end now matched to 
 
 ## What this pass includes
 
-1. Vendor bundle `vendor/Raise3D.ini` + `vendor/Raise3D.idx` for Configuration Wizard / local vendor drop-in. G-code thumbnails off; `scripts/ensure_m99123_first.py` puts `M99123` on line 1 after export.
+1. Vendor bundle `vendor/Raise3D.ini` + `vendor/Raise3D.idx` for Configuration Wizard / local vendor drop-in. G-code thumbnails off; `scripts/ensure_m99123_first.py` puts `M99123` on line 1 and converts `M204 S` to `SET_VELOCITY_LIMIT`.
 2. Importable config bundle `profiles/Raise3D-Pro2Plus-HS-0.4-bundle.ini` (`File → Import → Import Config Bundle`).
 3. Printer: Raise3D Pro2 Plus Hyper Speed 0.4 Dual. Unused tools skipped with `is_extruder_used`.
 4. Filament: Generic PLA 1.75 mm (G-code name `[Raise3D] PLA`). Nozzle 215/225 °C and multiplier 1.00 from the operator’s proven Prusa PLA. Bed 60 °C. Dual standby 180 °C. Volumetric 15 mm³/s = Pro2 Hyper FFF L1. Assign to both slots.
-5. Print: XL-style 0.4 mm family (0.10 FAST DETAIL, 0.15/0.20/0.25 SPEED and STRUCTURAL, 0.28 DRAFT). Default 0.20 mm SPEED. Motion clipped to Pro2 Hyper FFF L1 (150 mm/s, 5000 mm/s², 15 mm³/s). Travel 150 mm/s. Wipe tower on — default X50 Y140 (past T1 keep-out); relative E / `M83` (ideaMaker used `M82`).
+5. Print: XL-style 0.4 mm family (0.10 FAST DETAIL, 0.15/0.20/0.25 SPEED and STRUCTURAL, 0.28 DRAFT). Default 0.20 mm SPEED. Motion clipped to Pro2 Hyper FFF L1 (150 mm/s, 5000 mm/s², 15 mm³/s). Travel 150 mm/s. Accel: print 2000 / travel and first layer 5000 (ideaMaker). `ensure_m99123_first.py` converts `M204 S` to `SET_VELOCITY_LIMIT`. Wipe tower on — default X50 Y140 (past T1 keep-out); relative E / `M83` (ideaMaker used `M82`).
 6. Left-only purge from `conradfreeman_filament_orange.gcode`. Dual start, standby tool-change, and end from `Multicolor.gcode`.
 7. Tool-change standby 180 °C, `M109`, firmware XY offset (`extruder_offset = 0x0,0x0`). T1 keep-out: bed texture + validator; not a slicer XY offset.
 8. G-code inspect / validate / compare scripts and fixtures.

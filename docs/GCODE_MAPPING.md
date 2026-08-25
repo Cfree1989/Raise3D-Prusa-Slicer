@@ -31,7 +31,7 @@ This mapping is **experimental**. Physical Stage 2–7 tests are still required.
 | `G1 Z15.0 F300` | Same | Copied | Clearance before purge. |
 | `G92 E0` / `G1 F140 E29` / `G1 X20 Y0 F140 E30` / `G92 E0` | Same XY; last move is `E1` (relative) | Copied XY; E delta | Exact purge path from this machine. `E30` is absolute-E “go to 30”; under `M83` that extra 1 mm is `E1`. |
 | `G1 F9000.0` / `M117 Printing...` / `M1001` | Same | Copied | Travel feed + start marker. |
-| `SET_VELOCITY_LIMIT ACCEL=5000.00` and `SQUARE_CORNER_VELOCITY=10.00` | Same, once after `M1001` | Copied initial values | ideaMaker later switches ACCEL 2000/5000 during the print. Per-feature switching is **not replicated** (Assumption / physical test). |
+| `SET_VELOCITY_LIMIT ACCEL=5000.00` and `SQUARE_CORNER_VELOCITY=10.00` | Same after `M1001`. Print profiles use print accel **2000** and travel/first-layer **5000**. `ensure_m99123_first.py` rewrites PrusaSlicer `M204 S` to `SET_VELOCITY_LIMIT ACCEL=….00` | Copied dialect + ideaMaker 2000/5000 | PrusaSlicer 2.9.6 Klipper flavor only emits `M204 S` ([GCodeWriter](https://github.com/prusa3d/PrusaSlicer/blob/version_2.9.6/src/libslic3r/GCode/GCodeWriter.cpp)); Klipper accepts `M204 S` or `SET_VELOCITY_LIMIT`. ideaMaker Multicolor toggles ACCEL 2000 (print) / 5000 (travel), ~10k times. XL per-feature 1500/2500/4000 removed. |
 | `G29`, `M92`, `M218`, `M600`, `PRINT_START` macros | — | Omitted | Not in this file. Generic Klipper macros are not authoritative. |
 
 ## End G-code
@@ -75,7 +75,7 @@ Source: `Multicolor.gcode`. XY offset is **not** sliced in (`extruder_offset = 0
 | T0-only preheat (no T1) | Stage 3: confirm left nozzle lifts/prints without forcing a T1 heat. |
 | Left-only purge blob at homed origin then `X20 Y0` | Stage 3: watch first motion; confirm no bed crash and purge is on the plate, not on the clip. |
 | Dual in-place purge `F200 E10` / `E-11` (no XY wipe) | Stage 6–7: confirm blobs form at home and do not hit the clip or a parked nozzle. |
-| `SET_VELOCITY_LIMIT ACCEL=5000` without later 2000 drops | Stage 4: compare ringing to the ideaMaker baseline. |
+| `SET_VELOCITY_LIMIT ACCEL=5000` without later 2000/5000 travel/print toggling | Stage 4: compare ringing. 0.5.9 emits 2000/5000 via converted M204; count/spacing will not match ideaMaker exactly. |
 | `M2000` pause (community, not in this file) | Stage 5 only; do not use on a long print first. |
 | Absolute E (`M82`) under PrusaSlicer Klipper flavor | Stage 2: inspect G-code. Dual profile now uses `M83` / relative E for the wipe tower. |
 | Firmware 25 mm X offset with slicer offset 0 | Stage 6: watch right nozzle path; abort if it is ~25 mm off the model or hits the left nozzle. |

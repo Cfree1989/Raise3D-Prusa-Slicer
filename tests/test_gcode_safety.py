@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from validate_gcode import validate  # noqa: E402
-from ensure_m99123_first import rewrite  # noqa: E402
+from ensure_m99123_first import convert_m204_line, rewrite  # noqa: E402
 
 FIXTURES = ROOT / "tests" / "fixtures"
 
@@ -73,6 +73,29 @@ class GcodeSafetyTests(unittest.TestCase):
             path = Path(tmp) / "nohs.gcode"
             path.write_text("G28 X0 Y0\n", encoding="utf-8")
             self.assertEqual(rewrite(path), "missing")
+
+    def test_convert_m204_matches_ideamaker_set_velocity_limit(self) -> None:
+        self.assertEqual(convert_m204_line("M204 S2000"), "SET_VELOCITY_LIMIT ACCEL=2000.00")
+        self.assertEqual(convert_m204_line("M204 S5000"), "SET_VELOCITY_LIMIT ACCEL=5000.00")
+        self.assertEqual(
+            convert_m204_line("M204 S2500 ; adjust acceleration"),
+            "SET_VELOCITY_LIMIT ACCEL=2500.00; adjust acceleration",
+        )
+        self.assertEqual(convert_m204_line("G1 X10"), "G1 X10")
+
+    def test_rewrite_converts_m204(self) -> None:
+        import tempfile
+
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "m204.gcode"
+            path.write_text(src.replace("G1 X110 E5", "M204 S2000\nG1 X110 E5", 1), encoding="utf-8")
+            self.assertTrue(any("M204" in e for e in validate(path)))
+            self.assertEqual(rewrite(path), "already")
+            out = path.read_text(encoding="utf-8")
+            self.assertIn("SET_VELOCITY_LIMIT ACCEL=2000.00", out)
+            self.assertNotIn("M204", out)
+            self.assertEqual(validate(path), [], msg="\n".join(validate(path)))
 
     def test_t1_left_keepout_after_m1001_fails(self) -> None:
         import tempfile

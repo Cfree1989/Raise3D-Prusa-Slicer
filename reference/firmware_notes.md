@@ -5,7 +5,8 @@
 - ideaMaker **5.4.2.8790**
 - `;Printer Type: RAISE3D Pro2 Plus - Hyper Speed`
 - `;Firmware: Klipper`
-- Hyper Speed marker: `M99123` on line 1
+- Hyper Speed marker: First line is `M99123` plus payload
+- ideaMaker accel: `SET_VELOCITY_LIMIT ACCEL=2000.00` (print) / `5000.00` (travel). PrusaSlicer 2.9.6 Klipper flavor writes `M204 S` instead; `scripts/ensure_m99123_first.py` converts it.
 - `;Dimension: 305.000 305.000 605.000 0.400 0.400`
 
 ## Dual (experimental)

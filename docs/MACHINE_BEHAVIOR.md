@@ -70,7 +70,7 @@ This profile is **experimental**. It is not production-ready.
 | `T0` | Yes (both files) | Confirmed |
 | `T1` | Dual file only | Confirmed in `Multicolor.gcode` |
 | `G10` / `G11` | No | |
-| `SET_VELOCITY_LIMIT` | `ACCEL=5000`, `ACCEL=2000`, `SQUARE_CORNER_VELOCITY=10` | Confirmed Klipper |
+| `SET_VELOCITY_LIMIT` | `ACCEL=5000`, `ACCEL=2000`, `SQUARE_CORNER_VELOCITY=10` | Confirmed Klipper. ideaMaker Multicolor: 5223×5000 and 5222×2000 (print vs travel). PrusaSlicer 2.9.6 emits `M204 S` instead; post-process converts to `SET_VELOCITY_LIMIT`. Print profiles: 2000 print / 5000 travel and first layer. |
 | `M221` | Start `S94`, end `S100` | Confirmed |
 | `M106` | `S0`, `S128`, `S255` | Confirmed; first layer fan off |
 
@@ -120,7 +120,7 @@ These are 2022 **Marlin** PrusaSlicer profiles for pre-Hyper Speed Pro2/Pro2 Plu
 1. Whether copying `M99123` plus `;Printer Type: RAISE3D Pro2 Plus - Hyper Speed` produces the touchscreen Hyper Speed checkmark.
 2. Printer slot names must still be `[Raise3D] PLA` (G-code now emits that; a renamed slot will still warn).
 3. RaiseTouch firmware version.
-4. Whether `SET_VELOCITY_LIMIT ACCEL=5000` at start without ideaMaker’s later drops to 2000 is acceptable.
+4. Whether PrusaSlicer’s 2000/5000 `SET_VELOCITY_LIMIT` cadence (from converted `M204`) matches ideaMaker ringing. Klipper flavor cannot emit SET_VELOCITY_LIMIT natively.
 5. Pause/resume (`M2000`) on this Hyper Speed firmware.
 6. Right nozzle and dual-head lift: dual G-code confirmed. Confirm firmware XY offset (do not also slice 25 mm). Dual purge is in-place `E10` at home, not `X40 Y0`. Keep T1 paths and the wipe tower off X < 25 mm; measure the real keep-out. Watch Stage 6–7 for collisions and ~25 mm shift.
 7. Dual tool-change: PrusaSlicer wipe tower (default X50 Y140; you can drag) vs ideaMaker’s tower at ~X96 Y282. Confirm the tower is where you put it and ooze does not hit the part.

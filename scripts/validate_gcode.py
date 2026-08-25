@@ -24,6 +24,10 @@ FORBIDDEN = [
     (re.compile(r"^PRINT_START\b", re.I), "generic Klipper PRINT_START is not authoritative"),
     (re.compile(r"^BED_MESH", re.I), "bed mesh command is not in the ideaMaker reference"),
     (re.compile(r"^SET_HEATER_TEMPERATURE\b", re.I), "generic Klipper heater helper not in reference"),
+    (
+        re.compile(r"^M204\b", re.I),
+        "M204 is PrusaSlicer Klipper-flavor accel; convert with ensure_m99123_first.py to SET_VELOCITY_LIMIT (ideaMaker)",
+    ),
 ]
 SUSPICIOUS = [
     (re.compile(r"^G28\s*$", re.I), "bare G28 (reference homes X/Y then Z separately)"),
