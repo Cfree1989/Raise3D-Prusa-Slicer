@@ -27,7 +27,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.2.0")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.2.1")
         self.assertIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
 
@@ -96,7 +96,7 @@ class VendorStructureTests(unittest.TestCase):
         printp = self.ini["print:0.20mm L1 Conservative @Raise3D Pro2 Plus HS Dual"]
         cond = printp.get("compatible_printers_condition") or ""
         self.assertIn("PRINTER_VARIANT_DUAL", cond)
-        self.assertEqual(printp["wipe_tower"], "1")
+        self.assertEqual(printp["wipe_tower"], "0")
 
     def test_klipper_flavor_and_no_relative_e(self) -> None:
         common = self.ini["printer:*common*"]

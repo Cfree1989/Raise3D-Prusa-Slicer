@@ -16,7 +16,7 @@ Printer workflow: slice on the PC → copy `.gcode` to USB → start from RaiseT
 
 **Left** is T0 only and matches the ideaMaker start/end sequence.
 
-**Dual** is two 0.4 mm tools (T0 left, T1 right). Assign filament to both slots. Print left-only, right-only, or both: unused tools are skipped via `is_extruder_used`. The printer firmware applies the ~25 mm X nozzle offset — PrusaSlicer offset is `0x0,0x0` so it is not applied twice.
+**Dual** is two 0.4 mm tools (T0 left, T1 right). Assign filament to both slots. Print left-only, right-only, or both: unused tools are skipped via `is_extruder_used`. The printer firmware applies the ~25 mm X nozzle offset — PrusaSlicer offset is `0x0,0x0` so it is not applied twice. Wipe tower is off: PrusaSlicer only allows it with relative E, and this printer keeps ideaMaker’s `M82` / absolute E.
 
 ## Install
 

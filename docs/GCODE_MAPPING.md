@@ -55,6 +55,7 @@ There is no ideaMaker dual file yet. Dual start/end **copies the left sequence**
 | Select first printing tool | `{if initial_extruder == 0}T0{else}T1{endif}` | Added | Right-only jobs still home on T0 |
 | Tool-change | `M104 T{previous_extruder} S{temperature-30}` then `M109 T{next_extruder}` | Added | Electronic lift is firmware on the `T` command PrusaSlicer emits. No `M218`, no Marlin `M116` / `P0` |
 | End | Reset flow T0 and T1, `M1002`, `M104 T0/T1 S0`, then ideaMaker relative wipe / `G28 X0 Y0` / `M84` | Copied + T1 off | Left end plus right heater off |
+| Wipe tower | Off | Not used | PrusaSlicer wipe tower requires `use_relative_e_distances=1`. ideaMaker uses `M82` / absolute E. Unused nozzle is firmware electronic lift. |
 | Headers | `;Extruder Offset #2: 0.000 0.000`, filament `#2` comments | Added | RaiseTouch dual metadata; offset comment is 0 because firmware holds the real offset |
 
 ## Uncertain commands — required physical tests

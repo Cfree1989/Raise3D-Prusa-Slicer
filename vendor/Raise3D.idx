@@ -1,3 +1,4 @@
 min_slic3r_version = 2.9.0
 0.1.0 Initial experimental left-extruder Hyper Speed bundle. Start/end G-code copied from ideaMaker 5.4.2.8790. Not production-ready.
 0.2.0 Dual-extruder printer (T0+T1 electronic lift). Heat/purge gated by is_extruder_used. Slicer XY offset is 0; firmware keeps the ~25 mm X offset. Not production-ready.
+0.2.1 Dual print profile keeps wipe tower off. PrusaSlicer wipe tower requires relative E; ideaMaker start G-code is M82 / absolute E.

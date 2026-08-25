@@ -8,7 +8,7 @@ Status: **experimental Left + Dual bundle**. Not production-ready. Dual has no i
 2. Importable config bundle `profiles/Raise3D-Pro2Plus-HS-Left-0.4-bundle.ini` (`File → Import → Import Config Bundle`).
 3. Printers: Raise3D Pro2 Plus Hyper Speed, 0.4 mm, **Left** and **Dual**.
 4. Filament: PLA 1.75 mm (temps conservative; not copied from Hyper Speed Raise3D PLA). Works with both printers.
-5. Print: 0.20 mm L1 conservative (Left) and Dual (wipe tower on).
+5. Print: 0.20 mm L1 conservative (Left) and Dual (wipe tower off — requires relative E; this printer uses ideaMaker M82).
 6. Left start/end G-code derived from `conradfreeman_filament_orange.gcode` as mapped in `docs/GCODE_MAPPING.md`.
 7. Dual start/end extends that sequence: heat/purge gated by `is_extruder_used`, tool-change `M104` standby + `M109`, firmware XY offset (`extruder_offset = 0x0,0x0`).
 8. G-code inspect / validate / compare scripts and fixtures.
@@ -40,4 +40,4 @@ Status: **experimental Left + Dual bundle**. Not production-ready. Dual has no i
 | 4 | Small calibration object vs ideaMaker baseline. |
 | 5 | Pause / runout — only after 3–4 pass. |
 | 6 | Right-only on Dual (object assigned to extruder 2): T0 home, T1 purge at X40 Y0, lift, first layer. |
-| 7 | Dual color: tool-change lift, standby temp, wipe tower, alignment (firmware offset). Abort if nozzles collide or T1 is shifted ~25 mm. |
+| 7 | Dual color: tool-change lift, standby temp, alignment (firmware offset). Abort if nozzles collide or T1 is shifted ~25 mm. |
