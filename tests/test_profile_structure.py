@@ -26,13 +26,13 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.4.0")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.4.1")
         self.assertNotIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
         self.assertNotIn("printer:Raise3D Pro2 Plus Hyper Speed 0.4 Left", self.ini)
 
     def test_print_and_filament_are_tied_to_dual_printer(self) -> None:
-        filament = self.ini["filament:PLA @Raise3D Pro2 Plus HS"]
+        filament = self.ini["filament:Generic PLA @Raise3D Pro2 Plus HS"]
         printp = self.ini["print:0.20mm SPEED @Raise3D Pro2 Plus HS"]
         cond_f = filament.get("compatible_printers_condition") or self.ini["filament:*common*"][
             "compatible_printers_condition"
@@ -94,7 +94,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(p["default_acceleration"], "2500")
         self.assertLessEqual(int(p["travel_acceleration"]), 5000)
         self.assertEqual(p["wipe_tower"], "0")
-        filament = self.ini["filament:PLA @Raise3D Pro2 Plus HS"]
+        filament = self.ini["filament:Generic PLA @Raise3D Pro2 Plus HS"]
         self.assertEqual(filament["filament_max_volumetric_speed"], "15")
 
     def test_xl_style_print_family_exists(self) -> None:
@@ -116,23 +116,18 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(self.ini["print:0.15mm SPEED @Raise3D Pro2 Plus HS"]["layer_height"], "0.15")
         self.assertEqual(self.ini["print:0.10mm FAST DETAIL @Raise3D Pro2 Plus HS"]["layer_height"], "0.1")
 
-    def test_generic_filaments_from_templates_capped_at_l1(self) -> None:
-        expected = {
-            "filament:PLA @Raise3D Pro2 Plus HS": 15,
-            "filament:PETG @Raise3D Pro2 Plus HS": 9,
-            "filament:ABS @Raise3D Pro2 Plus HS": 11,
-            "filament:ASA @Raise3D Pro2 Plus HS": 12,
-            "filament:FLEX @Raise3D Pro2 Plus HS": 2.5,
-        }
-        for section, vol in expected.items():
-            self.assertIn(section, self.ini)
-            value = float(self.ini[section]["filament_max_volumetric_speed"])
-            self.assertLessEqual(value, 15)
-            self.assertEqual(value, vol)
-            gcode = self.ini[section].get("start_filament_gcode") or self.ini["filament:*common*"][
-                "start_filament_gcode"
-            ]
-            self.assertIn("filament_extruder_id", gcode)
+    def test_wizard_filament_is_generic_pla_only(self) -> None:
+        self.assertIn("filament:Generic PLA @Raise3D Pro2 Plus HS", self.ini)
+        self.assertEqual(self.ini["filament:Generic PLA @Raise3D Pro2 Plus HS"]["alias"], "Generic PLA")
+        self.assertNotIn("filament:PLA @Raise3D Pro2 Plus HS", self.ini)
+        self.assertNotIn("filament:PETG @Raise3D Pro2 Plus HS", self.ini)
+        self.assertNotIn("filament:ABS @Raise3D Pro2 Plus HS", self.ini)
+        self.assertNotIn("filament:ASA @Raise3D Pro2 Plus HS", self.ini)
+        self.assertNotIn("filament:FLEX @Raise3D Pro2 Plus HS", self.ini)
+        self.assertEqual(
+            self.ini["printer_model:PRO2PLUS_HS_DUAL"]["default_materials"],
+            "Generic PLA @Raise3D Pro2 Plus HS",
+        )
 
     def test_klipper_flavor_and_no_relative_e(self) -> None:
         common = self.ini["printer:*common*"]
