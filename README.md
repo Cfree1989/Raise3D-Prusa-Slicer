@@ -9,12 +9,12 @@ Printer workflow: slice on the PC → copy `.gcode` to USB → start from RaiseT
 | Preset | Name |
 | --- | --- |
 | Printer | Raise3D Pro2 Plus Hyper Speed 0.4 Dual |
-| Filament | Generic PLA |
+| Filament | PLA / PETG / TPU / ASA / PA-CF / ABS-GF Raise3D |
 | Print | XL-style 0.4 mm family: 0.10 FAST DETAIL, 0.15/0.20/0.25 SPEED and STRUCTURAL, 0.28 DRAFT (default 0.20mm SPEED) |
 
 One printer, two 0.4 mm tools (T0 left, T1 right), like XL 2-tool. Assign filament to both slots. Print left-only, right-only, or both: unused tools are skipped via `is_extruder_used`. The printer firmware applies the ~25 mm X nozzle offset — PrusaSlicer offset is `0x0,0x0` so it is not applied twice. Wipe tower is on for dual-color: PrusaSlicer places and shapes it (relative E / `M83`). Do not copy ideaMaker tower coordinates.
 
-Print layout follows Prusa XL IS 0.4 (SPEED / STRUCTURAL / DETAIL / DRAFT). Motion is clipped to Raise3D Pro2 **Hyper FFF L1**: 150 mm/s print, 5000 mm/s² accel, 15 mm³/s. Travel stays **150 mm/s** (this machine’s ideaMaker / `machine_max_feedrate`). XL values of 170–400 mm/s are not used. Generic PLA nozzle is **215 °C first layer / 225 °C other layers**, multiplier **1.00**, bed **60 °C** (operator’s proven Prusa PLA). Dual unused-nozzle standby stays **180 °C** from ideaMaker. Volumetric 15 mm³/s.
+Print layout follows Prusa XL IS 0.4 (SPEED / STRUCTURAL / DETAIL / DRAFT). Motion is clipped to Raise3D Pro2 **Hyper FFF L1**: 150 mm/s print, 5000 mm/s² accel, 15 mm³/s. Travel stays **150 mm/s** (this machine’s ideaMaker / `machine_max_feedrate`). XL values of 170–400 mm/s are not used. PLA Raise3D nozzle is **215 °C first layer / 225 °C other layers**, multiplier **1.00**, bed **60 °C** (operator’s PLA XL / proven Prusa PLA). PETG, TPU, ASA, PA-CF, and ABS-GF Raise3D use the same first-layer/other-layer temps as the matching `* XL` user presets; TPU volumetric is 4 mm³/s. Dual unused-nozzle standby stays **180 °C** from ideaMaker. Filament presets are compatible only with this Dual 0.4 printer.
 
 ## Install
 
@@ -42,7 +42,7 @@ Then install the vendor profiles (A or B below). ideaMaker is rollback only; not
 1. Copy `vendor/Raise3D.ini`, `vendor/Raise3D.idx`, and the `vendor/Raise3D/` folder (bed texture) to `%APPDATA%\PrusaSlicer\vendor\`
 2. Restart PrusaSlicer
 3. **Configuration Wizard** → Other FFF → enable **Raise3D (experimental)** → Pro2 Plus Hyper Speed Dual 0.4
-4. Confirm Generic PLA and the XL-style print profiles appear with that printer selected
+4. Confirm PLA Raise3D (and the other Raise3D filaments if you want them) and the XL-style print profiles appear with that printer selected
 
 If slicing fails on post-processing, check that `py -3 --version` works and that the two scripts exist at the path above.
 
@@ -50,7 +50,7 @@ If slicing fails on post-processing, check that `py -3 --version` works and that
 
 1. **File → Import → Import Config Bundle**
 2. Select `vendor/Raise3D.ini`
-3. Select Dual, then Generic PLA and a print profile (0.20mm SPEED is default)
+3. Select Dual, then PLA Raise3D and a print profile (0.20mm SPEED is default)
 
 Import Config Bundle does not install `vendor/Raise3D/PRO2PLUS_HS_DUAL_texture.svg`. Copy that folder as in A if you want the orange T1 keep-out stripe on the plater. Default wipe tower X50 Y140 still applies.
 
@@ -59,10 +59,10 @@ Import Config Bundle does not install `vendor/Raise3D/PRO2PLUS_HS_DUAL_texture.s
 ## Using both extruders
 
 1. Select **Raise3D Pro2 Plus Hyper Speed 0.4 Dual**.
-2. Load **Generic PLA** on filament slot 1 and slot 2 (or only the slot you will print with).
+2. Load **PLA Raise3D** (or PETG/TPU/ASA/PA-CF/ABS-GF Raise3D) on filament slot 1 and slot 2 (or only the slot you will print with). These presets are tied to this Dual printer only (Filament → Dependencies).
 3. On the plater, set each object’s extruder (1 = left / T0, 2 = right / T1), or paint multi-material.
 4. Slice a small test. Wipe tower is on; default is **X50 Y140** so T1 can reach it. Drag it on the plater if you want. Unused nozzle drops to 180 °C on tool change. The orange stripe on the bed is T1 keep-out (leftmost ~25 mm).
-5. Confirm `;Filament Name #1:` / `#2:` is **`[Raise3D] PLA`** and matches the names loaded on the printer. Custom G-code writes that with `{"[Raise3D] PLA"}` so PrusaSlicer does not parse `[Raise3D]` as a variable.
+5. Confirm `;Filament Name #1:` / `#2:` is **`[Raise3D] `** plus the selected `filament_type` (PLA still emits `[Raise3D] PLA`) and matches the names loaded on the printer. Custom G-code writes `{"[Raise3D] "}` so PrusaSlicer does not parse `[Raise3D]` as a variable.
 
 Right-only: assign the part to extruder 2. Start G-code heats T1 only, homes on T1, then uses the same `F140 E29` / `X20 Y0` wipe as left-only (from `RightonlyExtruder.gcode`). Dual in-place `E10`/`E-11` is only when both tools are used.
 
@@ -84,8 +84,8 @@ Evidence labels: `docs/MACHINE_BEHAVIOR.md`
 ## Assumptions you must treat as untested
 
 - Copying `M99123` from the ideaMaker file enables Hyper Speed on the touchscreen (forum reports are mixed).
-- `;Filament Name #1: [Raise3D] PLA` (and `#2` on Dual) matches the name loaded on **this** printer. If a slot was renamed, change the G-code comment or the slot so they match exactly.
-- PLA at 215 °C first layer / 225 °C other layers, multiplier 1.00, 60 °C bed — operator’s proven Prusa PLA. ideaMaker `[Raise3D] PLA` was 230 °C / 94%; dual standby stays 180 °C from Multicolor (filament idle 70 °C is not used in Raise3D tool-change G-code).
+- `;Filament Name #1: [Raise3D] PLA` (and `#2` on Dual) when slicing PLA matches the name loaded on **this** printer. Other materials emit `[Raise3D] PETG`, `[Raise3D] TPU`, `[Raise3D] ASA`, `[Raise3D] PA`, `[Raise3D] ABS`. If a slot was renamed, change the slot so it matches exactly.
+- PLA at 215 °C first layer / 225 °C other layers, multiplier 1.00, 60 °C bed — operator’s PLA XL / proven Prusa PLA. PETG/TPU/ASA/PA-CF/ABS-GF temps are copied from the matching `* XL` user presets; cooling and retract are generic for type, not copied from XL. ideaMaker `[Raise3D] PLA` was 230 °C / 94%; dual standby stays 180 °C from Multicolor (filament idle is not used in Raise3D tool-change G-code).
 - `SET_VELOCITY_LIMIT` print 2000 / travel 5000 after converting PrusaSlicer `M204 S`. Cadence will not match ideaMaker’s ~10k switches exactly.
 - SPEED print 150 mm/s vs STRUCTURAL (XL 80/45 walls). Hyper FFF L1 is 150 mm/s / 15 mm³/s; do not flatten SPEED to 75. ideaMaker files already print at 120 and 150.
 - `M2000` pause (community; not in the ideaMaker file).

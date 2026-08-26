@@ -24,3 +24,6 @@ min_slic3r_version = 2.9.0
 0.5.14 Escape [Raise3D] PLA in custom G-code as {"[Raise3D] PLA"} so PrusaSlicer does not treat [Raise3D] as a placeholder. Exported comments are still [Raise3D] PLA.
 0.5.15 Print post_process runs ensure_m99123_first.py then validate_gcode.py (this machine's Python 3.13 and repo paths). Validator failure aborts export.
 0.5.16 Print post_process uses C:\\Windows\\py.exe -3 (latest installed Python 3) instead of a pinned C:\\Python313\\python.exe. Script paths stay C:\\Repos\\Raise3D-Prusa-Slicer\\scripts\\.
+0.5.17 Filament preset is PLA Raise3D (same name on Plater and Filament settings). Replaces Generic PLA @Raise3D Pro2 Plus HS.
+0.5.18 Add PETG/TPU/ASA/PA-CF/ABS-GF Raise3D from operator XL temps. Filaments compatible only with this Dual 0.4 printer. RaiseTouch names are [Raise3D] plus filament_type.
+0.5.19 Filament cost and spool_weight match the operator XL Generic-derived presets.

@@ -35,7 +35,7 @@ This profile is **experimental**. It is not production-ready.
 | --- | --- | --- |
 | Nozzles in `;Dimension:` | `0.400 0.400` | Confirmed |
 | Tools used | Left: `T0` only. Right: `T1` only. Dual: `T0` and `T1`, many swaps | Confirmed. Dual profile gates unused tools with `is_extruder_used` |
-| Filament name | `[Raise3D] PLA` | Confirmed in ideaMaker. PrusaSlicer start G-code now emits the same `#1`/`#2` comments. Wizard preset remains Generic PLA. |
+| Filament name | `[Raise3D] ` + `filament_type` | Confirmed in ideaMaker for PLA as `[Raise3D] PLA`. Other materials emit PETG/TPU/ASA/PA/ABS. Wizard presets are `* Raise3D` and are compatible only with this Dual printer. |
 | Filament diameter | 1.75 mm | Confirmed |
 | Filament compensation | 94% (`M221 T0 S94.00`) | Confirmed in ideaMaker. PrusaSlicer filament preset uses multiplier **1.00** (operator’s proven Prusa PLA). |
 | First-layer nozzle / bed | `M109 T0 S230` / `M190 S60` | Confirmed in ideaMaker. PrusaSlicer preset is **215 °C first layer / 225 °C other / 60 °C bed** (operator’s proven Prusa PLA). |

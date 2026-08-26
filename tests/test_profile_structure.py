@@ -26,13 +26,13 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.16")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.19")
         self.assertNotIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
         self.assertNotIn("printer:Raise3D Pro2 Plus Hyper Speed 0.4 Left", self.ini)
 
     def test_print_and_filament_are_tied_to_dual_printer(self) -> None:
-        filament = self.ini["filament:Generic PLA @Raise3D Pro2 Plus HS"]
+        filament = self.ini["filament:PLA Raise3D"]
         printp = self.ini["print:0.20mm SPEED @Raise3D Pro2 Plus HS"]
         cond_f = filament.get("compatible_printers_condition") or self.ini["filament:*common*"][
             "compatible_printers_condition"
@@ -41,13 +41,16 @@ class VendorStructureTests(unittest.TestCase):
             "compatible_printers_condition"
         ]
         self.assertIn("PRINTER_MODEL_PRO2PLUS_HS", cond_f)
+        self.assertIn("PRINTER_VARIANT_DUAL", cond_f)
         self.assertIn("PRINTER_VARIANT_DUAL", cond_p)
         self.assertNotIn("PRINTER_VARIANT_LEFT", cond_p)
-        self.assertIn(';Filament Name: {"[Raise3D] PLA"}', filament["start_filament_gcode"])
-        self.assertIn(';Filament Name #1: {"[Raise3D] PLA"}', self.ini["printer:Raise3D Pro2 Plus Hyper Speed 0.4 Dual"]["start_gcode"])
-        self.assertIn(';Filament Name #2: {"[Raise3D] PLA"}', self.ini["printer:Raise3D Pro2 Plus Hyper Speed 0.4 Dual"]["start_gcode"])
-        self.assertNotIn(";Filament Name #1: PLA\n", self.ini["printer:Raise3D Pro2 Plus Hyper Speed 0.4 Dual"]["start_gcode"])
-        self.assertIn("filament_extruder_id", filament["start_filament_gcode"])
+        self.assertIn(';Filament Name: {"[Raise3D] "}{filament_type[filament_extruder_id]}', self.ini["filament:*common*"]["start_filament_gcode"])
+        start = self.ini["printer:Raise3D Pro2 Plus Hyper Speed 0.4 Dual"]["start_gcode"]
+        self.assertIn(';Filament Name #1: {"[Raise3D] "}{filament_type[0]}', start)
+        self.assertIn(';Filament Name #2: {"[Raise3D] "}{filament_type[1]}', start)
+        self.assertNotIn(";Filament Name #1: PLA\n", start)
+        self.assertNotIn('{"[Raise3D] PLA"}', start)
+        self.assertIn("filament_extruder_id", self.ini["filament:*common*"]["start_filament_gcode"])
         self.assertEqual(filament["temperature"], "225")
         self.assertEqual(filament["first_layer_temperature"], "215")
         self.assertEqual(filament.get("extrusion_multiplier") or self.ini["filament:*common*"]["extrusion_multiplier"], "1")
@@ -141,7 +144,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertNotIn("wipe_tower_rotation_angle", p)
         self.assertEqual(self.ini["printer_model:PRO2PLUS_HS_DUAL"]["bed_texture"], "PRO2PLUS_HS_DUAL_texture.svg")
         self.assertTrue((ROOT / "vendor" / "Raise3D" / "PRO2PLUS_HS_DUAL_texture.svg").is_file())
-        filament = self.ini["filament:Generic PLA @Raise3D Pro2 Plus HS"]
+        filament = self.ini["filament:PLA Raise3D"]
         self.assertEqual(filament["filament_max_volumetric_speed"], "15")
 
     def test_xl_style_print_family_exists(self) -> None:
@@ -172,18 +175,68 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(self.ini["print:0.15mm SPEED @Raise3D Pro2 Plus HS"]["layer_height"], "0.15")
         self.assertEqual(self.ini["print:0.10mm FAST DETAIL @Raise3D Pro2 Plus HS"]["layer_height"], "0.1")
 
-    def test_wizard_filament_is_generic_pla_only(self) -> None:
-        self.assertIn("filament:Generic PLA @Raise3D Pro2 Plus HS", self.ini)
-        self.assertEqual(self.ini["filament:Generic PLA @Raise3D Pro2 Plus HS"]["alias"], "Generic PLA")
-        self.assertNotIn("filament:PLA @Raise3D Pro2 Plus HS", self.ini)
-        self.assertNotIn("filament:PETG @Raise3D Pro2 Plus HS", self.ini)
-        self.assertNotIn("filament:ABS @Raise3D Pro2 Plus HS", self.ini)
-        self.assertNotIn("filament:ASA @Raise3D Pro2 Plus HS", self.ini)
-        self.assertNotIn("filament:FLEX @Raise3D Pro2 Plus HS", self.ini)
+    def test_wizard_filaments_are_raise3d_named_and_xl_temps(self) -> None:
+        names = [
+            "PLA Raise3D",
+            "PETG Raise3D",
+            "TPU Raise3D",
+            "ASA Raise3D",
+            "PA-CF Raise3D",
+            "ABS-GF Raise3D",
+        ]
+        for name in names:
+            section = f"filament:{name}"
+            self.assertIn(section, self.ini)
+            self.assertNotIn("alias", self.ini[section])
+        self.assertNotIn("filament:Generic PLA @Raise3D Pro2 Plus HS", self.ini)
         self.assertEqual(
             self.ini["printer_model:PRO2PLUS_HS_DUAL"]["default_materials"],
-            "Generic PLA @Raise3D Pro2 Plus HS",
+            ";".join(names),
         )
+        pla = self.ini["filament:PLA Raise3D"]
+        self.assertEqual(pla["first_layer_temperature"], "215")
+        self.assertEqual(pla["temperature"], "225")
+        self.assertEqual(pla["first_layer_bed_temperature"], "60")
+        self.assertEqual(self.ini["filament:*common*"]["filament_cost"], "100")
+        self.assertEqual(self.ini["filament:*common*"]["filament_spool_weight"], "135")
+        petg = self.ini["filament:PETG Raise3D"]
+        self.assertEqual(petg["filament_type"], "PETG")
+        self.assertEqual(petg["first_layer_temperature"], "245")
+        self.assertEqual(petg["temperature"], "250")
+        self.assertEqual(petg["bed_temperature"], "80")
+        self.assertEqual(petg["filament_cost"], "100")
+        self.assertEqual(petg["filament_spool_weight"], "245")
+        tpu = self.ini["filament:TPU Raise3D"]
+        self.assertEqual(tpu["filament_type"], "TPU")
+        self.assertEqual(tpu["first_layer_temperature"], "215")
+        self.assertEqual(tpu["temperature"], "230")
+        self.assertEqual(tpu["extrusion_multiplier"], "1.08")
+        self.assertEqual(tpu["filament_density"], "1.22")
+        self.assertEqual(tpu["filament_max_volumetric_speed"], "4")
+        self.assertEqual(tpu["first_layer_bed_temperature"], "50")
+        self.assertEqual(tpu["filament_cost"], "100")
+        self.assertEqual(tpu["filament_spool_weight"], "245")
+        asa = self.ini["filament:ASA Raise3D"]
+        self.assertEqual(asa["first_layer_temperature"], "265")
+        self.assertEqual(asa["temperature"], "265")
+        self.assertEqual(asa["first_layer_bed_temperature"], "100")
+        self.assertEqual(asa["bed_temperature"], "105")
+        self.assertEqual(asa["filament_cost"], "100")
+        self.assertEqual(asa["filament_spool_weight"], "135")
+        pa = self.ini["filament:PA-CF Raise3D"]
+        self.assertEqual(pa["filament_type"], "PA")
+        self.assertEqual(pa["first_layer_temperature"], "280")
+        self.assertEqual(pa["temperature"], "290")
+        self.assertEqual(pa["extrusion_multiplier"], "0.97")
+        self.assertEqual(pa["filament_cost"], "250")
+        self.assertEqual(pa["filament_spool_weight"], "250")
+        abs_gf = self.ini["filament:ABS-GF Raise3D"]
+        self.assertEqual(abs_gf["filament_type"], "ABS")
+        self.assertEqual(abs_gf["first_layer_temperature"], "265")
+        self.assertEqual(abs_gf["temperature"], "270")
+        self.assertEqual(abs_gf["first_layer_bed_temperature"], "105")
+        self.assertEqual(abs_gf["filament_cost"], "26.99")
+        self.assertEqual(abs_gf["filament_spool_weight"], "230")
 
     def test_klipper_flavor_and_relative_e(self) -> None:
         common = self.ini["printer:*common*"]
