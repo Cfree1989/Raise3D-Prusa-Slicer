@@ -18,6 +18,25 @@ Print layout follows Prusa XL IS 0.4 (SPEED / STRUCTURAL / DETAIL / DRAFT). Moti
 
 ## Install
 
+### Lab PC (required before slicing)
+
+Print profiles call two post-processing scripts by **absolute path**. Put this repo at `C:\Repos\Raise3D-Prusa-Slicer` (clone or copy the whole tree). Then install:
+
+1. **PrusaSlicer 2.9.6** (the version this bundle was tested against).
+2. **Python 3** from [python.org](https://www.python.org/downloads/) — ordinary CPython, GIL on. 3.13 and 3.14 both work. Do not use the free-threaded (no-GIL) build. No pip packages: the scripts use only the standard library.
+3. Confirm the Windows launcher: `py -3 --version` in a command prompt. Profiles run `C:\Windows\py.exe -3`, which picks the **newest Python 3** on the machine, not a pinned `C:\Python313\python.exe`.
+
+Required scripts (already in the repo):
+
+```text
+C:\Repos\Raise3D-Prusa-Slicer\scripts\ensure_m99123_first.py
+C:\Repos\Raise3D-Prusa-Slicer\scripts\validate_gcode.py
+```
+
+If the repo lives anywhere else, post-processing will fail until those two files are at that path. `compare_gcode.py` is optional and is not run by PrusaSlicer.
+
+Then install the vendor profiles (A or B below). ideaMaker is rollback only; nothing here is written to printer firmware.
+
 ### A. Configuration Wizard (vendor bundle)
 
 1. Copy `vendor/Raise3D.ini`, `vendor/Raise3D.idx`, and the `vendor/Raise3D/` folder (bed texture) to `%APPDATA%\PrusaSlicer\vendor\`
@@ -25,9 +44,7 @@ Print layout follows Prusa XL IS 0.4 (SPEED / STRUCTURAL / DETAIL / DRAFT). Moti
 3. **Configuration Wizard** → Other FFF → enable **Raise3D (experimental)** → Pro2 Plus Hyper Speed Dual 0.4
 4. Confirm Generic PLA and the XL-style print profiles appear with that printer selected
 
-Tested against PrusaSlicer **2.9.6**.
-
-Print profiles run the post-processing scripts with `C:\Windows\py.exe -3` (the Windows Python launcher). That picks the **newest Python 3** on the machine — 3.14 on the lab PCs, 3.13 at home — so the path is not pinned to `C:\Python313\python.exe`. The scripts still live at `C:\Repos\Raise3D-Prusa-Slicer\scripts\`. If slicing fails on post-processing, open a command prompt and check that `py -3 --version` works.
+If slicing fails on post-processing, check that `py -3 --version` works and that the two scripts exist at the path above.
 
 ### B. Import Config Bundle
 
