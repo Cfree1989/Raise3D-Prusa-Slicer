@@ -79,11 +79,11 @@ This profile is **experimental**. It is not production-ready.
 
 See `tests/fixtures/ideamaker_left_start.gcode`, `tests/fixtures/ideamaker_right_start.gcode`, `tests/fixtures/ideamaker_dual_start.gcode`, and `docs/GCODE_MAPPING.md`.
 
-Left file: heat **T0 only**, home X/Y then Z, raise Z to 15 mm, purge at origin → `X20 Y0`, `M1001`, then `SET_VELOCITY_LIMIT`.
+Left file: heat **T0 only**, home X/Y then Z, raise Z to 15 mm, purge at origin → `X20 Y0` (PrusaSlicer profile wipes to **X80** then travels `X80 Y0` at Z15 before `M1001`).
 
-Right file: heat **T1 only**, `T1` then the same home and `X20 Y0` wipe (not dual `E10`/`E-11`).
+Right file: heat **T1 only**, `T1` then the same home and ideaMaker `X20 Y0` wipe (PrusaSlicer: **X80**; not dual `E10`/`E-11`).
 
-Dual file: heat **T0 and T1**, home on `T0`, then in-place prime (`T1` `E10`/`E-11` at `F200`, `T0` `E10` at `F200`), `M1001`, `M104 T1 S180`, then `SET_VELOCITY_LIMIT`. No `X20 Y0` wipe.
+Dual file: heat **T0 and T1**, home on `T0`, then in-place prime (`T1` `E10`/`E-11` at `F200`, `T0` `E10` at `F200`), `M1001`, `M104 T1 S180`, then `SET_VELOCITY_LIMIT`. No ideaMaker XY wipe. **PrusaSlicer adds `G1 X80 Y0 F9000` at Z15** so the fan is not over the home blob when Z drops.
 
 ## End sequence (complete, from this file)
 
@@ -127,7 +127,7 @@ These are 2022 **Marlin** PrusaSlicer profiles for pre-Hyper Speed Pro2/Pro2 Plu
 3. RaiseTouch firmware version.
 4. Whether PrusaSlicer’s 2000/5000 `SET_VELOCITY_LIMIT` cadence (from converted `M204`) matches ideaMaker ringing. Klipper flavor cannot emit SET_VELOCITY_LIMIT natively.
 5. Pause/resume (`M2000`) on this Hyper Speed firmware.
-6. Right nozzle and dual-head lift: dual G-code confirmed; right-only G-code confirmed (`RightonlyExtruder.gcode`). Confirm firmware XY offset (do not also slice 25 mm). Dual purge is in-place `E10`/`E-11` at home. Right-only uses the same `X20 Y0` wipe as left after homing on T1. Keep T1 paths and the wipe tower off X < 25 mm; measure the real keep-out. Watch Stage 6–7 for collisions and ~25 mm shift.
+6. Right nozzle and dual-head lift: dual G-code confirmed; right-only G-code confirmed (`RightonlyExtruder.gcode`). Confirm firmware XY offset (do not also slice 25 mm). Dual purge is in-place `E10`/`E-11` at home, then profile travel to X80 at Z15. Right-only uses the same `X80 Y0` wipe as left after homing on T1. Keep T1 paths and the wipe tower off X < 25 mm; measure the real keep-out. Watch Stage 6–7 for collisions and ~25 mm shift.
 7. Dual tool-change: PrusaSlicer wipe tower (default X50 Y140; you can drag) vs ideaMaker’s octagon at ~X50 Y241 in `MulticolorRaise3d.gcode`. Confirm the tower is where you put it and ooze does not hit the part.
 8. Relative E (`M83`) vs ideaMaker `M82` — inspect first dual slice for mixed E mode.
 9. Volumetric limit 15 mm³/s is Hyper FFF L1. Print temps are the operator’s Prusa PLA (215/225 °C, 1.00 flow). ideaMaker was 230 °C / 94%. Dual standby stays 180 °C; filament idle 70 °C is not emitted in tool-change G-code.

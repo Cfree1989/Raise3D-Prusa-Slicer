@@ -4,6 +4,9 @@
 2. Rewrite PrusaSlicer's Klipper-flavor `M204 S…` as ideaMaker `SET_VELOCITY_LIMIT ACCEL=…`.
 3. Insert mid-print `M104 T{next}` before each swap `M109` (ideaMaker preheats while the
    other nozzle is still printing). `next_extruder` exists only in tool-change G-code.
+4. Convert PrusaSlicer `M73 P… R…` (percent / minutes) to ideaMaker
+   `;PRINTING_TIME:` / `;REMAINING_TIME:` (seconds) and append `;Print Time:` /
+   `;Material#N Used:` so RaiseTouch can show progress, remaining time, and file stats.
 
 Works as a CLI (`python scripts/ensure_m99123_first.py file.gcode`) and as a
 PrusaSlicer post-processing script (G-code path is the last argument).
@@ -21,6 +24,10 @@ M204_S_VAL = re.compile(r"\bS(-?\d+(?:\.\d+)?)", re.I)
 M109_T = re.compile(r"^M109\s+T([01])\s+S(\d+(?:\.\d+)?)\b", re.I)
 M104_T = re.compile(r"^M104\s+T([01])\s+S(-?\d+(?:\.\d+)?)\b", re.I)
 T_SEL = re.compile(r"^T([01])\b", re.I)
+M73 = re.compile(r"^M73\b(?P<body>.*)$", re.I)
+EST_TIME = re.compile(r"^;\s*estimated printing time \(normal mode\)\s*=\s*(.+)$", re.I)
+FILAMENT_MM = re.compile(r"^;\s*filament used \[mm\]\s*=\s*(.+)$", re.I)
+FILAMENT_COST = re.compile(r"^;\s*filament cost\s*=\s*(.+)$", re.I)
 # ideaMaker Multicolor median gap preheat→M109 is ~285 lines (range ~200–2600).
 PREHEAT_LINES = 400
 MIN_PREHEAT_GAP = 50
@@ -118,6 +125,118 @@ def convert_m204_lines(lines: list[str]) -> tuple[list[str], int]:
     return out, n
 
 
+def parse_hms(text: str) -> int:
+    """Parse PrusaSlicer `3h 16m 9s` / `45m` / `30s` into seconds."""
+    hours = minutes = seconds = 0
+    if match := re.search(r"(\d+)\s*h", text, re.I):
+        hours = int(match.group(1))
+    if match := re.search(r"(\d+)\s*m", text, re.I):
+        minutes = int(match.group(1))
+    if match := re.search(r"(\d+)\s*s", text, re.I):
+        seconds = int(match.group(1))
+    return hours * 3600 + minutes * 60 + seconds
+
+
+def _csv_floats(text: str) -> list[float]:
+    out = []
+    for part in text.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            out.append(float(part))
+        except ValueError:
+            continue
+    return out
+
+
+def parse_estimated_seconds(lines: list[str]) -> int | None:
+    for line in lines:
+        match = EST_TIME.match(line.strip())
+        if match:
+            return parse_hms(match.group(1))
+    return None
+
+
+def parse_filament_stats(lines: list[str]) -> tuple[list[float], list[float]]:
+    mm: list[float] = []
+    cost: list[float] = []
+    for line in lines:
+        stripped = line.strip()
+        match = FILAMENT_MM.match(stripped)
+        if match:
+            mm = _csv_floats(match.group(1))
+            continue
+        match = FILAMENT_COST.match(stripped)
+        if match:
+            cost = _csv_floats(match.group(1))
+    return mm, cost
+
+
+def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
+    """Map M73 remaining-times to ideaMaker comments RaiseTouch displays.
+
+    ideaMaker 4.1+ writes `;PRINTING_TIME:` / `;REMAINING_TIME:` in seconds at
+    each layer and `;Print Time:` / `;Material#N Used:` at EOF (mm and cost).
+    """
+    total = parse_estimated_seconds(lines)
+    changed = 0
+    first_r_min: float | None = None
+    out: list[str] = []
+    for line in lines:
+        match = M73.match(_code(line))
+        if not match:
+            out.append(line)
+            continue
+        body = match.group("body")
+        r_match = re.search(r"\bR(-?\d+(?:\.\d+)?)", body, re.I)
+        if r_match is None:
+            out.append(line)
+            continue
+        r_min = float(r_match.group(1))
+        if first_r_min is None:
+            first_r_min = r_min
+        if total is None:
+            total = int(round(max(r_min, 0) * 60))
+        remaining = int(round(max(r_min, 0) * 60))
+        printed = max(0, (total or 0) - remaining)
+        out.append(f";PRINTING_TIME: {printed}")
+        out.append(f";REMAINING_TIME: {remaining}")
+        changed += 1
+
+    if total is None and first_r_min is not None:
+        total = int(round(max(first_r_min, 0) * 60))
+
+    if total is not None:
+        try:
+            m1001 = next(i for i, line in enumerate(out) if _code(line).upper() == "M1001")
+        except StopIteration:
+            m1001 = None
+        if m1001 is not None:
+            window = out[m1001 + 1 : m1001 + 12]
+            if not any(line.startswith(";REMAINING_TIME:") for line in window):
+                block = [
+                    ";TOTAL_NUM: 2",
+                    ";PRINTING_TIME: 0",
+                    f";REMAINING_TIME: {total}",
+                ]
+                out = out[: m1001 + 1] + block + out[m1001 + 1 :]
+                changed += 1
+
+        if not any(line.startswith(";Print Time:") for line in out):
+            mm, cost = parse_filament_stats(lines)
+            out.append(f";Print Time: {total}")
+            for i, used in enumerate(mm or [0.0], start=1):
+                if used <= 0 and i > 1:
+                    continue
+                out.append(f";Material#{i} Used: {used:.1f}")
+                if i <= len(cost):
+                    out.append(f";Material#{i} Cost: {cost[i - 1]:.2f}")
+            changed += 1
+
+    return out, changed
+
+
 def rewrite(path: Path) -> str:
     """Move M99123 to line 1, convert M204, insert next-tool preheat.
 
@@ -129,13 +248,14 @@ def rewrite(path: Path) -> str:
     lines = text.splitlines()
     lines, n_m204 = convert_m204_lines(lines)
     lines, n_preheat = insert_next_tool_preheat(lines)
+    lines, n_times = emit_raisetouch_times(lines)
     idx = next((i for i, line in enumerate(lines) if line.startswith("M99123")), None)
     moved = False
     if idx is not None and idx != 0:
         header = lines.pop(idx)
         lines.insert(0, header)
         moved = True
-    if moved or n_m204 or n_preheat:
+    if moved or n_m204 or n_preheat or n_times:
         path.write_bytes((newline.decode("ascii").join(lines) + newline.decode("ascii")).encode("utf-8"))
     if idx is None:
         return "missing"
@@ -164,8 +284,11 @@ def main(argv: list[str] | None = None) -> int:
     m204_before = sum(1 for line in raw_before.splitlines() if M204_S.match(line.split(";", 1)[0].strip()))
     result = rewrite(path)
     extra_msg = f", converted {m204_before} M204 to SET_VELOCITY_LIMIT" if m204_before else ""
-    if "next-tool preheat" in path.read_text(encoding="utf-8", errors="replace"):
+    after = path.read_text(encoding="utf-8", errors="replace")
+    if "next-tool preheat" in after:
         extra_msg += ", inserted next-tool M104 preheat"
+    if ";REMAINING_TIME:" in after:
+        extra_msg += ", wrote RaiseTouch PRINTING_TIME/REMAINING_TIME"
     if result == "missing":
         print(f"FAIL {path}: no M99123 line to move{extra_msg}", file=sys.stderr)
         return 1

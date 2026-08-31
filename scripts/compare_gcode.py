@@ -1,7 +1,7 @@
 """Compare ideaMaker reference headers/start/end with a PrusaSlicer G-code file.
 
 Marker sets are chosen from the candidate so a dual export is not failed for
-missing the left/right X20 Y0 wipe, and a right-only export is not failed for
+missing the left/right front wipe (ideaMaker X20 / profile X80), and a right-only export is not failed for
 missing T0 shutdown.
 """
 
@@ -29,12 +29,12 @@ COMMON = (
 )
 LEFT_ONLY = (
     "G1 F140 E29",
-    "G1 X20 Y0",
+    "Y0 F140",
     "M104 T0 S0",
 )
 RIGHT_ONLY = (
     "G1 F140 E29",
-    "G1 X20 Y0",
+    "Y0 F140",
     "M104 T1 S0",
 )
 DUAL = (

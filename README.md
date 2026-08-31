@@ -64,7 +64,7 @@ Import Config Bundle does not install `vendor/Raise3D/PRO2PLUS_HS_DUAL_texture.s
 4. Slice a small test. Wipe tower is on; default is **X50 Y140** so T1 can reach it. Drag it on the plater if you want. Unused nozzle drops to 180 °C on tool change. The orange stripe on the bed is T1 keep-out (leftmost ~25 mm).
 5. Confirm `;Filament Name #1:` / `#2:` is **`[Raise3D] `** plus the selected `filament_type` (PLA still emits `[Raise3D] PLA`) and matches the names loaded on the printer. Custom G-code writes `{"[Raise3D] "}` so PrusaSlicer does not parse `[Raise3D]` as a variable.
 
-Right-only: assign the part to extruder 2. Start G-code heats T1 only, homes on T1, then uses the same `F140 E29` / `X20 Y0` wipe as left-only (from `RightonlyExtruder.gcode`). Dual in-place `E10`/`E-11` is only when both tools are used.
+Right-only: assign the part to extruder 2. Start G-code heats T1 only, homes on T1, then uses the same `F140 E29` / `X80 Y0` wipe as left-only (from `RightonlyExtruder.gcode`, XY extended past ideaMaker `X20` so the fan clears the blob). Dual in-place `E10`/`E-11` is only when both tools are used; both modes then travel `G1 X80 Y0 F9000` at Z15.
 
 Keep dual-color (and right-extruder) parts **and the wipe tower** off the leftmost ~25 mm of the bed. The right nozzle offset lives in firmware (`extruder_offset` stays `0x0,0x0`). PrusaSlicer 2.9.6 cannot clip T1’s printable polygon; the bed texture is a reminder, and `validate_gcode.py` errors on T1 moves with X < 25 mm after `M1001`. Start-sequence T1 purge at home (before `M1001`) is allowed.
 
@@ -89,12 +89,12 @@ Evidence labels: `docs/MACHINE_BEHAVIOR.md`
 - `SET_VELOCITY_LIMIT` print 2000 / travel 5000 after converting PrusaSlicer `M204 S`. Cadence will not match ideaMaker’s ~10k switches exactly.
 - SPEED print 150 mm/s vs STRUCTURAL (XL 80/45 walls). Hyper FFF L1 is 150 mm/s / 15 mm³/s; do not flatten SPEED to 75. ideaMaker files already print at 120 and 150.
 - `M2000` pause (community; not in the ideaMaker file).
-- Dual: electronic lift on `T0`/`T1`, firmware XY offset (~25 mm X; slicer offset 0), in-place dual prime (`F200 E10` / `E-11`) when both tools are used, tool-change standby 180 °C. Right-only uses the same `X20 Y0` wipe as left, after homing on T1. Wipe tower default X50 Y140 (relative E); this ideaMaker dual file placed the octagon around ~X50 Y241. Next-tool `M104` is inserted ~400 lines before swap `M109` (ideaMaker gaps 64–2200, median 762). T1 in this dual file stays ≥ ~X27; validator keep-out is X < 25.
-- Relative E (`M83`) instead of ideaMaker `M82`, required for PrusaSlicer's wipe tower. Left-only purge uses `E1` on the `X20 Y0` move (the extra 1 mm after the 29 mm blob).
+- Dual: electronic lift on `T0`/`T1`, firmware XY offset (~25 mm X; slicer offset 0), in-place dual prime (`F200 E10` / `E-11`) when both tools are used, then `G1 X80 Y0 F9000` at Z15 (ideaMaker dual has no XY wipe; X20 left the fan in the blob). Tool-change standby 180 °C. Right-only uses the same `X80 Y0` wipe as left, after homing on T1. Wipe tower default X50 Y140 (relative E); this ideaMaker dual file placed the octagon around ~X50 Y241. Next-tool `M104` is inserted ~400 lines before swap `M109` (ideaMaker gaps 64–2200, median 762). T1 in this dual file stays ≥ ~X27; validator keep-out is X < 25.
+- Relative E (`M83`) instead of ideaMaker `M82`, required for PrusaSlicer's wipe tower. Left-only purge uses `E1` on the `X80 Y0` move (the extra 1 mm after the 29 mm blob).
 
 ## Before you print
 
-1. Slice a small part (assign the tools you will use). Print profiles run `scripts\ensure_m99123_first.py` then `scripts\validate_gcode.py` as post-processing ([PrusaSlicer post-processing](https://help.prusa3d.com/article/post-processing-scripts_283913)): that moves `M99123` to line 1, converts `M204` to `SET_VELOCITY_LIMIT`, inserts next-tool preheat, then rejects unsafe G-code (a validator error aborts export). G-code thumbnails are off so a PNG block is not sitting in front of the header.
+1. Slice a small part (assign the tools you will use). Print profiles run `scripts\ensure_m99123_first.py` then `scripts\validate_gcode.py` as post-processing ([PrusaSlicer post-processing](https://help.prusa3d.com/article/post-processing-scripts_283913)): that moves `M99123` to line 1, converts `M204` to `SET_VELOCITY_LIMIT`, inserts next-tool preheat, writes RaiseTouch `;PRINTING_TIME:` / `;REMAINING_TIME:` / `;Print Time:` from PrusaSlicer `M73` and estimated-time comments, then rejects unsafe G-code (a validator error aborts export). G-code thumbnails are off so a PNG block is not sitting in front of the header. On the printer, name the loaded slots `[Raise3D] PLA` (or `[Raise3D]` plus the material type) so Filament Status can go green. Hyper Speed may stay yellow: copying `;Sliced by ideaMaker` does not unlock that check.
 2. Optional extra check vs ideaMaker:
 
 ```text
@@ -103,7 +103,7 @@ python scripts\compare_gcode.py reference\ideamaker\RightonlyExtruder.gcode path
 python scripts\compare_gcode.py reference\ideamaker\MulticolorRaise3d.gcode path\to\dual.gcode
 ```
 
-3. Read the first ~80 lines and the end sequence. Confirm `M99123` is line 1, `G28 X0 Y0` then `G28 Z0`, `M1001` / `M1002`, no `G29` / `M92` / `M218`. Left-only: heat T0, home T0, purge `X20 Y0`. Right-only: heat T1, home T1, same `X20 Y0` wipe. Dual: home T0, in-place `F200 E10` / `E-11`. Compare against the matching ideaMaker file. Dual slices are not expected to contain the `X20 Y0` wipe. Single-tool end turns off only that tool plus bare `M104 S0`. Tool-change standby `S180`; wipe tower starts at X50 Y140 unless you moved it (this ideaMaker dual file used ~X50 Y241, not a slicer default). Validator rejects T1 print moves with X < 25 mm.
+3. Read the first ~80 lines and the end sequence. Confirm `M99123` is line 1, `G28 X0 Y0` then `G28 Z0`, `M1001` / `M1002`, no `G29` / `M92` / `M218`. Left-only: heat T0, home T0, purge `X80 Y0`. Right-only: heat T1, home T1, same `X80 Y0` wipe. Dual: home T0, in-place `F200 E10` / `E-11`, then `G1 X80 Y0 F9000`. ideaMaker references still wipe to `X20`; the profile uses X80 so the fan clears the blob before Z drops. Single-tool end turns off only that tool plus bare `M104 S0`. Tool-change standby `S180`; wipe tower starts at X50 Y140 unless you moved it (this ideaMaker dual file used ~X50 Y241, not a slicer default). Validator rejects T1 print moves with X < 25 mm.
 4. Stage 3: supervised first layer (home, heat, purge, Z height, fan, shutdown). Dual: watch the unused nozzle lift, T1 first motion, and the park/prime at tool-change.
 5. Do not leave a long job unattended until Stages 3–4 pass. Dual color is Stage 7.
 

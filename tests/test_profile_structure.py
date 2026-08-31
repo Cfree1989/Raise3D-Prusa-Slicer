@@ -26,7 +26,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.19")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.20")
         self.assertNotIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
         self.assertNotIn("printer:Raise3D Pro2 Plus Hyper Speed 0.4 Left", self.ini)
@@ -73,11 +73,13 @@ class VendorStructureTests(unittest.TestCase):
         self.assertIn("T1", start)
         self.assertIn("G1 F200 E10", start)
         self.assertIn("G1 F200 E-11.00", start)
-        self.assertIn("G1 X20 Y0 F140 E1", start)
+        self.assertIn("G1 X80 Y0 F140 E1", start)
+        self.assertIn("G1 X80 Y0 F9000", start)
+        self.assertNotIn("G1 X20 Y0", start)
         self.assertNotIn("G1 X40 Y0", start)
         self.assertIn("{if is_extruder_used[0]}T0\n{else}T1\n{endif}", start.replace("\\n", "\n"))
         self.assertIn(
-            "{else}\nT1\nG92 E0\nG1 F140 E29\nG1 X20 Y0 F140 E1\nG92 E0",
+            "{else}\nT1\nG92 E0\nG1 F140 E29\nG1 X80 Y0 F140 E1\nG92 E0",
             start.replace("\\n", "\n"),
         )
         self.assertNotIn("G1 F200 E-11.00\nG92 E0\n{endif}", start)
@@ -242,7 +244,9 @@ class VendorStructureTests(unittest.TestCase):
         common = self.ini["printer:*common*"]
         self.assertEqual(common["gcode_flavor"], "klipper")
         self.assertEqual(common["use_relative_e_distances"], "1")
+        self.assertEqual(common["remaining_times"], "1")
         self.assertIn("G92 E0", common["before_layer_gcode"])
+        self.assertIn(";HEIGHT:{layer_height}", common["before_layer_gcode"])
         self.assertEqual(common["autoemit_temperature_commands"], "0")
         self.assertEqual(common.get("thumbnails", ""), "")
 

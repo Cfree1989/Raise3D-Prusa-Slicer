@@ -10,7 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from validate_gcode import validate  # noqa: E402
-from ensure_m99123_first import convert_m204_line, insert_next_tool_preheat, rewrite  # noqa: E402
+from ensure_m99123_first import (  # noqa: E402
+    convert_m204_line,
+    emit_raisetouch_times,
+    insert_next_tool_preheat,
+    parse_hms,
+    rewrite,
+)
 
 FIXTURES = ROOT / "tests" / "fixtures"
 
@@ -145,6 +151,57 @@ class GcodeSafetyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "t0_left.gcode"
             path.write_text(t0_left, encoding="utf-8")
+            self.assertEqual(validate(path), [], msg="\n".join(validate(path)))
+
+    def test_parse_hms(self) -> None:
+        self.assertEqual(parse_hms("3h 16m 9s"), 3 * 3600 + 16 * 60 + 9)
+        self.assertEqual(parse_hms("45m 12s"), 45 * 60 + 12)
+        self.assertEqual(parse_hms("30s"), 30)
+
+    def test_emit_raisetouch_times_from_m73_and_stats(self) -> None:
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
+        g1 = next(i for i, line in enumerate(src) if line.startswith("G1 X100"))
+        padded = (
+            src[: g1 + 1]
+            + ["M73 P0 R193", "M73 P50 R96"]
+            + src[g1 + 1 :]
+            + [
+                "; filament used [mm] = 20436.15, 0.00",
+                "; filament cost = 1.22, 0.00",
+                "; estimated printing time (normal mode) = 3h 13m 0s",
+            ]
+        )
+        out, n = emit_raisetouch_times(padded)
+        self.assertGreaterEqual(n, 3)
+        self.assertNotIn("M73 P0 R193", out)
+        self.assertIn(";PRINTING_TIME: 0", out)
+        self.assertIn(";REMAINING_TIME: 11580", out)
+        self.assertIn(";PRINTING_TIME: 5820", out)
+        self.assertIn(";REMAINING_TIME: 5760", out)
+        self.assertIn(";Print Time: 11580", out)
+        self.assertIn(";Material#1 Used: 20436.2", out)
+        self.assertIn(";Material#1 Cost: 1.22", out)
+        out2, n2 = emit_raisetouch_times(out)
+        self.assertEqual(n2, 0)
+
+    def test_rewrite_is_idempotent_after_raisetouch_times(self) -> None:
+        import tempfile
+
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "times.gcode"
+            path.write_text(
+                src
+                + "\n; estimated printing time (normal mode) = 1h 0m 0s\n"
+                + "M73 P0 R60\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(rewrite(path), "already")
+            first = path.read_text(encoding="utf-8")
+            self.assertIn(";REMAINING_TIME: 3600", first)
+            self.assertNotIn("M73 P0 R60", first)
+            self.assertEqual(rewrite(path), "already")
+            self.assertEqual(path.read_text(encoding="utf-8"), first)
             self.assertEqual(validate(path), [], msg="\n".join(validate(path)))
 
 
