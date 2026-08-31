@@ -173,66 +173,116 @@ def parse_filament_stats(lines: list[str]) -> tuple[list[float], list[float]]:
     return mm, cost
 
 
-def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
-    """Map M73 remaining-times to ideaMaker comments RaiseTouch displays.
+def _layer_marker(line: str, prefer_layer_change: bool) -> bool:
+    stripped = line.strip()
+    if prefer_layer_change:
+        return stripped.startswith(";LAYER_CHANGE")
+    return bool(re.match(r"^;LAYER:\d+", stripped))
 
-    ideaMaker 4.1+ writes `;PRINTING_TIME:` / `;REMAINING_TIME:` in seconds at
-    each layer and `;Print Time:` / `;Material#N Used:` at EOF (mm and cost).
+
+def _material_comments(total: int, mm: list[float], cost: list[float]) -> list[str]:
+    out = [f";Print Time: {total}"]
+    for i, used in enumerate(mm or [0.0], start=1):
+        if used <= 0 and i > 1:
+            continue
+        out.append(f";Material#{i} Used: {used:.1f}")
+        if i <= len(cost):
+            out.append(f";Material#{i} Cost: {cost[i - 1]:.2f}")
+    return out
+
+
+def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
+    """Write ideaMaker time comments RaiseTouch reads at layer changes.
+
+    File-picker grams/price still come from ideaMaker `.data`. Tune remaining time
+    is `;REMAINING_TIME:` (seconds) next to `;LAYER:` / `;LAYER_CHANGE:`. A single
+    block after M1001 is not enough: during heat-up the UI estimates from file
+    position (0.2% of the file → ~17 h on a 2 h print).
     """
     total = parse_estimated_seconds(lines)
-    changed = 0
-    first_r_min: float | None = None
-    out: list[str] = []
-    for line in lines:
+    mm, cost = parse_filament_stats(lines)
+    prefer_lc = any(line.strip().startswith(";LAYER_CHANGE") for line in lines)
+
+    events: list[tuple[int, int, int]] = []
+    for i, line in enumerate(lines):
         match = M73.match(_code(line))
         if not match:
-            out.append(line)
             continue
         body = match.group("body")
         r_match = re.search(r"\bR(-?\d+(?:\.\d+)?)", body, re.I)
-        if r_match is None:
-            out.append(line)
+        p_match = re.search(r"\bP(-?\d+(?:\.\d+)?)", body, re.I)
+        if r_match is None and p_match is None:
             continue
-        r_min = float(r_match.group(1))
-        if first_r_min is None:
-            first_r_min = r_min
-        if total is None:
+        r_min = float(r_match.group(1)) if r_match else None
+        pct = float(p_match.group(1)) if p_match else None
+        if total is None and r_min is not None:
             total = int(round(max(r_min, 0) * 60))
-        remaining = int(round(max(r_min, 0) * 60))
+        if r_min is not None:
+            remaining = int(round(max(r_min, 0) * 60))
+        elif total is not None and pct is not None:
+            remaining = int(round(total * (100.0 - min(max(pct, 0.0), 100.0)) / 100.0))
+        else:
+            continue
         printed = max(0, (total or 0) - remaining)
-        out.append(f";PRINTING_TIME: {printed}")
-        out.append(f";REMAINING_TIME: {remaining}")
+        events.append((i, printed, remaining))
+
+    if total is None and events:
+        total = events[0][1] + events[0][2]
+
+    def times_at(line_idx: int) -> tuple[int, int] | None:
+        if total is None:
+            return None
+        if not events:
+            return 0, total
+        prev = [event for event in events if event[0] <= line_idx]
+        event = prev[-1] if prev else events[0]
+        return event[1], event[2]
+
+    out: list[str] = []
+    changed = 0
+    for i, line in enumerate(lines):
+        if M73.match(_code(line)):
+            changed += 1
+            continue
+        if _layer_marker(line, prefer_lc):
+            already = (
+                len(out) >= 2
+                and out[-1].startswith(";REMAINING_TIME:")
+                and out[-2].startswith(";PRINTING_TIME:")
+            )
+            pair = times_at(i)
+            if not already and pair is not None:
+                printed, remaining = pair
+                out.append(f";PRINTING_TIME: {printed}")
+                out.append(f";REMAINING_TIME: {remaining}")
+                changed += 1
+        out.append(line)
+
+    if total is None:
+        return out, changed
+
+    firmware = next((i for i, line in enumerate(out[:120]) if line.startswith(";Firmware:")), None)
+    if firmware is not None and not any(
+        line.startswith(";Print Time:") for line in out[firmware : firmware + 12]
+    ):
+        block = _material_comments(total, mm, cost)
+        out = out[: firmware + 1] + block + out[firmware + 1 :]
         changed += 1
 
-    if total is None and first_r_min is not None:
-        total = int(round(max(first_r_min, 0) * 60))
-
-    if total is not None:
-        try:
-            m1001 = next(i for i, line in enumerate(out) if _code(line).upper() == "M1001")
-        except StopIteration:
-            m1001 = None
-        if m1001 is not None:
-            window = out[m1001 + 1 : m1001 + 12]
-            if not any(line.startswith(";REMAINING_TIME:") for line in window):
-                block = [
-                    ";TOTAL_NUM: 2",
-                    ";PRINTING_TIME: 0",
-                    f";REMAINING_TIME: {total}",
-                ]
-                out = out[: m1001 + 1] + block + out[m1001 + 1 :]
-                changed += 1
-
-        if not any(line.startswith(";Print Time:") for line in out):
-            mm, cost = parse_filament_stats(lines)
-            out.append(f";Print Time: {total}")
-            for i, used in enumerate(mm or [0.0], start=1):
-                if used <= 0 and i > 1:
-                    continue
-                out.append(f";Material#{i} Used: {used:.1f}")
-                if i <= len(cost):
-                    out.append(f";Material#{i} Cost: {cost[i - 1]:.2f}")
+    try:
+        m1001 = next(i for i, line in enumerate(out) if _code(line).upper() == "M1001")
+    except StopIteration:
+        m1001 = None
+    if m1001 is not None:
+        window = out[m1001 + 1 : m1001 + 16]
+        if not any(line.startswith(";REMAINING_TIME:") for line in window):
+            block = [";PRINTING_TIME: 0", f";REMAINING_TIME: {total}"]
+            out = out[: m1001 + 1] + block + out[m1001 + 1 :]
             changed += 1
+
+    if not any(line.startswith(";Print Time:") for line in out[-40:]):
+        out.extend(_material_comments(total, mm, cost))
+        changed += 1
 
     return out, changed
 

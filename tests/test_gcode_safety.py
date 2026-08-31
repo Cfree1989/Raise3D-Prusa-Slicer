@@ -163,7 +163,7 @@ class GcodeSafetyTests(unittest.TestCase):
         g1 = next(i for i, line in enumerate(src) if line.startswith("G1 X100"))
         padded = (
             src[: g1 + 1]
-            + ["M73 P0 R193", "M73 P50 R96"]
+            + ["M73 P0 R193", "M73 P50 R96", ";LAYER:1"]
             + src[g1 + 1 :]
             + [
                 "; filament used [mm] = 20436.15, 0.00",
@@ -178,9 +178,11 @@ class GcodeSafetyTests(unittest.TestCase):
         self.assertIn(";REMAINING_TIME: 11580", out)
         self.assertIn(";PRINTING_TIME: 5820", out)
         self.assertIn(";REMAINING_TIME: 5760", out)
-        self.assertIn(";Print Time: 11580", out)
+        fw = next(i for i, line in enumerate(out) if line.startswith(";Firmware:"))
+        self.assertEqual(out[fw + 1], ";Print Time: 11580")
         self.assertIn(";Material#1 Used: 20436.2", out)
         self.assertIn(";Material#1 Cost: 1.22", out)
+        self.assertTrue(any(line.startswith(";Print Time:") for line in out[-10:]))
         out2, n2 = emit_raisetouch_times(out)
         self.assertEqual(n2, 0)
 

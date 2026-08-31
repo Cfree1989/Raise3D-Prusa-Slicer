@@ -26,7 +26,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.20")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.22")
         self.assertNotIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
         self.assertNotIn("printer:Raise3D Pro2 Plus Hyper Speed 0.4 Left", self.ini)
@@ -65,7 +65,8 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(p["extruder_offset"], "0x0,0x0")
         self.assertIn("PRINTER_VARIANT_DUAL", p["printer_notes"])
         start = p["start_gcode"]
-        self.assertTrue(start.startswith("M99123 "))
+        self.assertIn(";Firmware: Klipper", start)
+        self.assertIn(";Bounding Box: 0.000 0.000 305.000 305.000 0.000 {max_layer_z}", start)
         self.assertIn("is_extruder_used[0]", start)
         self.assertIn("is_extruder_used[1]", start)
         self.assertIn("M104 T1", start)
@@ -246,7 +247,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(common["use_relative_e_distances"], "1")
         self.assertEqual(common["remaining_times"], "1")
         self.assertIn("G92 E0", common["before_layer_gcode"])
-        self.assertIn(";HEIGHT:{layer_height}", common["before_layer_gcode"])
+        self.assertNotIn(";HEIGHT:{layer_height}", common["before_layer_gcode"])
         self.assertEqual(common["autoemit_temperature_commands"], "0")
         self.assertEqual(common.get("thumbnails", ""), "")
 
