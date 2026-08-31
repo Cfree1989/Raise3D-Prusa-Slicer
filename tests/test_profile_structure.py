@@ -26,7 +26,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.22")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.23")
         self.assertNotIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
         self.assertNotIn("printer:Raise3D Pro2 Plus Hyper Speed 0.4 Left", self.ini)
@@ -66,7 +66,8 @@ class VendorStructureTests(unittest.TestCase):
         self.assertIn("PRINTER_VARIANT_DUAL", p["printer_notes"])
         start = p["start_gcode"]
         self.assertIn(";Firmware: Klipper", start)
-        self.assertIn(";Bounding Box: 0.000 0.000 305.000 305.000 0.000 {max_layer_z}", start)
+        self.assertNotIn("{max_layer_z}", start)
+        self.assertNotIn(";Bounding Box:", start)
         self.assertIn("is_extruder_used[0]", start)
         self.assertIn("is_extruder_used[1]", start)
         self.assertIn("M104 T1", start)

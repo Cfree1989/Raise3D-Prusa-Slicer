@@ -287,6 +287,37 @@ def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
     return out, changed
 
 
+def max_layer_z_from_gcode(lines: list[str]) -> float | None:
+    """Highest post-M1001 `;Z:` layer tag (PrusaSlicer layer-change comment)."""
+    zmax: float | None = None
+    after_m1001 = False
+    for line in lines:
+        if _code(line).upper() == "M1001":
+            after_m1001 = True
+            continue
+        if not after_m1001:
+            continue
+        match = re.match(r"^;Z:(-?\d+(?:\.\d+)?)\s*$", line.strip())
+        if match:
+            z = float(match.group(1))
+            zmax = z if zmax is None else max(zmax, z)
+    return zmax
+
+
+def inject_bounding_box(lines: list[str]) -> tuple[list[str], int]:
+    """ideaMaker header Z extent. `{max_layer_z}` is not valid in start G-code."""
+    if any(line.startswith(";Bounding Box:") for line in lines[:80]):
+        return lines, 0
+    zmax = max_layer_z_from_gcode(lines)
+    if zmax is None:
+        return lines, 0
+    firmware = next((i for i, line in enumerate(lines[:120]) if line.startswith(";Firmware:")), None)
+    if firmware is None:
+        return lines, 0
+    box = f";Bounding Box: 0.000 0.000 305.000 305.000 0.000 {zmax:.3f}"
+    return lines[: firmware + 1] + [box] + lines[firmware + 1 :], 1
+
+
 def rewrite(path: Path) -> str:
     """Move M99123 to line 1, convert M204, insert next-tool preheat.
 
@@ -299,13 +330,14 @@ def rewrite(path: Path) -> str:
     lines, n_m204 = convert_m204_lines(lines)
     lines, n_preheat = insert_next_tool_preheat(lines)
     lines, n_times = emit_raisetouch_times(lines)
+    lines, n_bbox = inject_bounding_box(lines)
     idx = next((i for i, line in enumerate(lines) if line.startswith("M99123")), None)
     moved = False
     if idx is not None and idx != 0:
         header = lines.pop(idx)
         lines.insert(0, header)
         moved = True
-    if moved or n_m204 or n_preheat or n_times:
+    if moved or n_m204 or n_preheat or n_times or n_bbox:
         path.write_bytes((newline.decode("ascii").join(lines) + newline.decode("ascii")).encode("utf-8"))
     if idx is None:
         return "missing"

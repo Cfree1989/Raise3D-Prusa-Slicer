@@ -13,6 +13,7 @@ from validate_gcode import validate  # noqa: E402
 from ensure_m99123_first import (  # noqa: E402
     convert_m204_line,
     emit_raisetouch_times,
+    inject_bounding_box,
     insert_next_tool_preheat,
     parse_hms,
     rewrite,
@@ -184,6 +185,14 @@ class GcodeSafetyTests(unittest.TestCase):
         self.assertIn(";Material#1 Cost: 1.22", out)
         self.assertTrue(any(line.startswith(";Print Time:") for line in out[-10:]))
         out2, n2 = emit_raisetouch_times(out)
+        self.assertEqual(n2, 0)
+
+    def test_inject_bounding_box_from_layer_z(self) -> None:
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
+        out, n = inject_bounding_box(src)
+        self.assertEqual(n, 1)
+        self.assertIn(";Bounding Box: 0.000 0.000 305.000 305.000 0.000 0.300", out)
+        out2, n2 = inject_bounding_box(out)
         self.assertEqual(n2, 0)
 
     def test_rewrite_is_idempotent_after_raisetouch_times(self) -> None:
