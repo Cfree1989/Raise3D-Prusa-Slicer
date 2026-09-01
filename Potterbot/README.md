@@ -10,9 +10,9 @@ Printer workflow: slice on the PC → upload `.gcode` in Duet Web Control (`192.
 
 | Preset | Name |
 | --- | --- |
-| Printer | 3D Potterbot 9, nozzles **1–10 mm** (default 5 mm) |
+| Printer | **1mm Nozzle** … **10mm Nozzle** (default 5 mm) |
 | Filament | **Clay Potterbot** (0 °C, no fan, 1.75 mm volumetric model) |
-| Print | **Vase Hollow**, **Vase Bottom** (3 bottoms then spiral), and **Infill** (15% concentric, 3 bottoms, spiral off) |
+| Print | **Vase Hollow**, **Vase Bottom** (3 Archimedean-chord bottoms then spiral), and **Infill** (15% grid, 3 Archimedean-chord bottoms, rectilinear tops, spiral off) |
 
 Layer height is the official Fine value: **1.5 mm** on every nozzle. Line width equals the nozzle on the machine (lab Cura notes). Speeds are the official Cura values: **40 mm/s** print, **80** travel, **20** bottoms. Every printer variant retracts **E-80 at 17 mm/s** (same feed as the official Cura end `F1000`) and hops **Z 5 mm** on travels ≥ 15 mm. Spiral vase walls do not travel, so they do not retract; skirt, bottoms, infill, and hops between objects do. That is not the FAQ 1000 mm @ 1000 mm/s recipe that stalls this motor. End G-code still lifts Z 10 mm and **retracts E-500**, then homes.
 
@@ -37,14 +37,14 @@ C:\Repos\Prusa-Slicer-Print-Profiles\Potterbot\scripts\validate_gcode.py
 
 1. Copy `vendor/Potterbot.ini` and `vendor/Potterbot.idx` to `%APPDATA%\PrusaSlicer\vendor\`
 2. Restart PrusaSlicer
-3. **Configuration Wizard** → Other FFF → enable **3D Potter (experimental)** → Potterbot 9 → pick the nozzle on the machine
+3. **Configuration Wizard** → Other FFF → enable **3D Potter (experimental)** → Potterbot 9 → pick **1mm Nozzle** through **10mm Nozzle** to match the tip on the machine
 4. Confirm **Clay Potterbot** and a Vase Hollow / Vase Bottom profile appear
 
 ### B. Import Config Bundle
 
 1. **File → Import → Import Config Bundle**
 2. Select `vendor/Potterbot.ini` or `profiles/Potterbot-9-bundle.ini`
-3. Select the nozzle that is installed, Clay Potterbot, and a vase profile
+3. Select **5mm Nozzle** (or the tip that is installed), Clay Potterbot, and a vase profile
 
 ## Source of truth
 
@@ -67,7 +67,7 @@ C:\Repos\Prusa-Slicer-Print-Profiles\Potterbot\scripts\validate_gcode.py
 ## Before you print
 
 1. Install the nozzle that matches the selected printer variant. Line width in the profile equals that nozzle.
-2. Slice a short vase, or use **1.5mm Infill** for infill / several objects. Post-processing runs `validate_gcode.py` and **aborts export** if it sees heater commands, missing `E-500`, missing `M83`, or moves off the 381 × 360 bat.
+2. Slice a short vase, or use **Infill** for infill / several objects. Post-processing runs `validate_gcode.py` and **aborts export** if it sees heater commands, missing `E-500`, missing `M83`, or moves off the 381 × 360 bat.
 3. Read the first and last lines: start is `G28` only (no heat); end is `G0 Z10 E-500 F1000` then `G28`.
 4. Charge clay with the Duet Prime macro. Supervised first bead: home, first loop, spiral, end retract.
 5. Do not leave a tall job unattended until that check passes.

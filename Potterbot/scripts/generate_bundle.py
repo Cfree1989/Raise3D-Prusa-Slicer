@@ -9,7 +9,7 @@ VENDOR = ROOT / "vendor" / "Potterbot.ini"
 BUNDLE = ROOT / "profiles" / "Potterbot-9-bundle.ini"
 IDX = ROOT / "vendor" / "Potterbot.idx"
 
-CONFIG_VERSION = "0.1.3"
+CONFIG_VERSION = "0.1.6"
 NOZZLES = list(range(1, 11))
 BED_X = 381  # 15 in bat; firmware X travel is 420
 BED_Y = 360  # firmware Y travel (bat is 381)
@@ -107,7 +107,7 @@ def vendor_block() -> str:
         "between_objects_gcode =",
         "color_change_gcode =",
         'default_filament_profile = "Clay Potterbot"',
-        "default_print_profile = 1.5mm Vase Hollow @Potterbot 5mm",
+        "default_print_profile = Vase Hollow @Potterbot 5mm",
         f"deretract_speed = {MID_RETRACT_SPEED}",
         "extruder_colour = #C4A574",
         "extruder_offset = 0x0",
@@ -165,7 +165,7 @@ def vendor_block() -> str:
 
     bed = f"0x0,{BED_X}x0,{BED_X}x{BED_Y},0x{BED_Y}"
     for nozzle in NOZZLES:
-        name = f"3D Potterbot 9 {nozzle}mm"
+        name = f"{nozzle}mm Nozzle"
         lines.extend(
             [
                 f"[printer:{name}]",
@@ -177,7 +177,7 @@ def vendor_block() -> str:
                 f"nozzle_diameter = {nozzle}",
                 f"max_layer_height = {fmt_num(max(LAYER_HEIGHT, float(nozzle)))}",
                 "min_layer_height = 0.2",
-                f'default_print_profile = {fmt_num(LAYER_HEIGHT)}mm Vase Hollow @Potterbot {nozzle}mm',
+                f"default_print_profile = Vase Hollow @Potterbot {nozzle}mm",
                 f"printer_notes = {printer_notes(nozzle)}",
                 "",
             ]
@@ -190,7 +190,7 @@ def vendor_block() -> str:
         [
             "[print:*common*]",
             "avoid_crossing_perimeters = 0",
-            "bottom_fill_pattern = concentric",
+            "bottom_fill_pattern = archimedeanchords",
             "bottom_solid_min_thickness = 0",
             "bridge_acceleration = 1000",
             "bridge_flow_ratio = 1",
@@ -212,7 +212,7 @@ def vendor_block() -> str:
             "extra_perimeters = 0",
             "fill_angle = 45",
             "fill_density = 0%",
-            "fill_pattern = concentric",
+            "fill_pattern = grid",
             "first_layer_acceleration = 500",
             "first_layer_acceleration_over_raft = 0",
             f"first_layer_infill_speed = {BOTTOM_SPEED}",
@@ -233,7 +233,7 @@ def vendor_block() -> str:
             "max_print_speed = 85",
             "max_volumetric_speed = 0",
             "min_skirt_length = 0",
-            "notes = EXPERIMENTAL. Clay profiles for Potterbot 9. Layer height 1.5 mm from official 3D Potter Fine. Line width equals the installed nozzle. Speeds from official Cura (40 mm/s print, 80 travel, 20 bottom). Printer retract is E-80 at 17 mm/s with 5 mm Z-hop (official end feed, not FAQ 1000 mm/s). Spiral vase walls do not travel so they do not retract; skirt, bottoms, infill, and hops between objects do. End G-code still pulls E-500.",
+            "notes = EXPERIMENTAL. Clay profiles for Potterbot 9. Layer height 1.5 mm from official 3D Potter Fine. Line width equals the installed nozzle. Bottoms are Archimedean chords; tops are rectilinear; sparse infill is grid. Speeds from official Cura (40 mm/s print, 80 travel, 20 bottom). Printer retract is E-80 at 17 mm/s with 5 mm Z-hop (official end feed, not FAQ 1000 mm/s). Spiral vase walls do not travel so they do not retract; skirt, bottoms, infill, and hops between objects do. End G-code still pulls E-500.",
             f"layer_height = {fmt_num(LAYER_HEIGHT)}",
             f"first_layer_height = {fmt_num(LAYER_HEIGHT)}",
             "only_retract_when_crossing_perimeters = 1",
@@ -264,7 +264,7 @@ def vendor_block() -> str:
             "support_material_auto = 0",
             "thick_bridges = 0",
             "thin_walls = 0",
-            "top_fill_pattern = concentric",
+            "top_fill_pattern = rectilinear",
             "top_solid_infill_acceleration = 1000",
             f"top_solid_infill_speed = {BOTTOM_SPEED}",
             "top_solid_layers = 0",
@@ -281,7 +281,6 @@ def vendor_block() -> str:
 
     for nozzle in NOZZLES:
         w = fmt_num(float(nozzle))
-        lh_s = fmt_num(LAYER_HEIGHT)
         cond = (
             "printer_notes=~/.*PRINTER_VENDOR_POTTERBOT.*/ and "
             "printer_notes=~/.*PRINTER_MODEL_9.*/ and "
@@ -298,31 +297,33 @@ def vendor_block() -> str:
             f"top_infill_extrusion_width = {w}",
             f"support_material_extrusion_width = {w}",
         ]
-        hollow = f"{lh_s}mm Vase Hollow @Potterbot {nozzle}mm"
-        bottom = f"{lh_s}mm Vase Bottom @Potterbot {nozzle}mm"
+        hollow = f"Vase Hollow @Potterbot {nozzle}mm"
+        bottom = f"Vase Bottom @Potterbot {nozzle}mm"
+        infill = f"Infill @Potterbot {nozzle}mm"
         lines.extend(
             [
                 f"[print:{hollow}]",
                 "inherits = *common*",
-                f"alias = {lh_s}mm Vase Hollow",
+                "alias = Vase Hollow",
                 "bottom_solid_layers = 0",
                 *shared,
                 "",
                 f"[print:{bottom}]",
                 "inherits = *common*",
-                f"alias = {lh_s}mm Vase Bottom",
+                "alias = Vase Bottom",
                 "bottom_solid_layers = 3",
                 *shared,
                 "",
-                f"[print:{lh_s}mm Infill @Potterbot {nozzle}mm]",
+                f"[print:{infill}]",
                 "inherits = *common*",
-                f"alias = {lh_s}mm Infill",
+                "alias = Infill",
                 "spiral_vase = 0",
                 "fill_density = 15%",
+                "fill_pattern = grid",
                 "bottom_solid_layers = 3",
                 "avoid_crossing_perimeters = 1",
                 "infill_overlap = 15%",
-                "notes = EXPERIMENTAL. Infill / multi-object clay. Same printer retract as the vase profiles (E-80 at 17 mm/s, 5 mm Z-hop). Raise infill % on the plater if you need it. Sequential printing (complete objects) is off so a tall pot cannot hit the nozzle; turn it on only if objects are short and spaced.",
+                "notes = EXPERIMENTAL. Infill / multi-object clay. 15% grid infill, Archimedean-chord bottoms, rectilinear tops. Same printer retract as the vase profiles (E-80 at 17 mm/s, 5 mm Z-hop). Raise infill % on the plater if you need it. Sequential printing (complete objects) is off so a tall pot cannot hit the nozzle; turn it on only if objects are short and spaced.",
                 *shared,
                 "",
             ]
@@ -380,8 +381,12 @@ def idx_text() -> str:
         "Line width equals the installed nozzle (lab Cura notes). Stopped scaling layer height as 30% of nozzle.\n"
         "0.1.2 Add 1.5mm Infill Retract print profile and Clay Potterbot Retract filament "
         "(80 mm @ 17 mm/s, 5 mm Z-hop). Vase profiles stay unretracted. Not the FAQ 1000 mm/s recipe.\n"
-        f"{CONFIG_VERSION} Retract and 5 mm Z-hop are printer settings on every profile. "
+        "0.1.3 Retract and 5 mm Z-hop are printer settings on every profile. "
         "Dropped the separate retract filament. Infill print profile renamed 1.5mm Infill.\n"
+        "0.1.4 Drop 1.5 mm from print profile names (layer height is still 1.5 mm). "
+        "Bottoms concentric, tops rectilinear, sparse infill grid.\n"
+        "0.1.5 Bottom fill pattern is Archimedean chords instead of concentric.\n"
+        f"{CONFIG_VERSION} Printer presets are named 1mm Nozzle through 10mm Nozzle.\n"
     )
 
 

@@ -30,7 +30,7 @@ class VendorStructureTests(unittest.TestCase):
 
     def test_vendor_and_model(self) -> None:
         self.assertEqual(self.ini["vendor"]["name"], "3D Potter (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.1.3")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.1.6")
         self.assertEqual(self.ini["printer_model:POTTERBOT9"]["variants"], "1;2;3;4;5;6;7;8;9;10")
         self.assertEqual(self.ini["printer_model:POTTERBOT9"]["default_materials"], "Clay Potterbot")
 
@@ -53,7 +53,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertIn("G28 ;Home all", end)
 
     def test_bed_is_bat_clipped_to_y_travel(self) -> None:
-        p = self.ini["printer:3D Potterbot 9 5mm"]
+        p = self.ini["printer:5mm Nozzle"]
         self.assertEqual(p["bed_shape"], "0x0,381x0,381x360,0x360")
         self.assertEqual(p["max_print_height"], "400")
         self.assertEqual(p["nozzle_diameter"], "5")
@@ -63,14 +63,14 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(common["layer_height"], "1.5")
         self.assertEqual(common["first_layer_height"], "1.5")
         for nozzle in range(1, 11):
-            self.assertIn(f"printer:3D Potterbot 9 {nozzle}mm", self.ini)
-            printer = self.ini[f"printer:3D Potterbot 9 {nozzle}mm"]
+            self.assertIn(f"printer:{nozzle}mm Nozzle", self.ini)
+            printer = self.ini[f"printer:{nozzle}mm Nozzle"]
             self.assertGreaterEqual(float(printer["max_layer_height"]), 1.5)
-            self.assertIn(f"print:1.5mm Vase Hollow @Potterbot {nozzle}mm", self.ini)
-            self.assertIn(f"print:1.5mm Vase Bottom @Potterbot {nozzle}mm", self.ini)
-            self.assertIn(f"print:1.5mm Infill @Potterbot {nozzle}mm", self.ini)
-            hollow = self.ini[f"print:1.5mm Vase Hollow @Potterbot {nozzle}mm"]
-            bottom = self.ini[f"print:1.5mm Vase Bottom @Potterbot {nozzle}mm"]
+            self.assertIn(f"print:Vase Hollow @Potterbot {nozzle}mm", self.ini)
+            self.assertIn(f"print:Vase Bottom @Potterbot {nozzle}mm", self.ini)
+            self.assertIn(f"print:Infill @Potterbot {nozzle}mm", self.ini)
+            hollow = self.ini[f"print:Vase Hollow @Potterbot {nozzle}mm"]
+            bottom = self.ini[f"print:Vase Bottom @Potterbot {nozzle}mm"]
             self.assertEqual(hollow["bottom_solid_layers"], "0")
             self.assertEqual(bottom["bottom_solid_layers"], "3")
             self.assertEqual(hollow.get("spiral_vase") or common["spiral_vase"], "1")
@@ -86,19 +86,23 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(p["solid_infill_speed"], "20")
         self.assertEqual(p["first_layer_speed"], "40")
         self.assertEqual(p["fill_density"], "0%")
+        self.assertEqual(p["fill_pattern"], "grid")
+        self.assertEqual(p["bottom_fill_pattern"], "archimedeanchords")
+        self.assertEqual(p["top_fill_pattern"], "rectilinear")
         self.assertEqual(p["top_solid_layers"], "0")
         self.assertEqual(p["perimeters"], "1")
         self.assertEqual(p["skirts"], "3")
         self.assertEqual(p["skirt_distance"], "8")
         self.assertEqual(p["wipe_tower"], "0")
-        five = self.ini["print:1.5mm Vase Hollow @Potterbot 5mm"]
+        five = self.ini["print:Vase Hollow @Potterbot 5mm"]
         self.assertEqual(five.get("layer_height") or p["layer_height"], "1.5")
         self.assertEqual(five["extrusion_width"], "5")
 
     def test_printer_retract_is_slow_ram_not_faq(self) -> None:
-        infill = self.ini["print:1.5mm Infill @Potterbot 5mm"]
+        infill = self.ini["print:Infill @Potterbot 5mm"]
         self.assertEqual(infill["spiral_vase"], "0")
         self.assertEqual(infill["fill_density"], "15%")
+        self.assertEqual(infill.get("fill_pattern") or self.ini["print:*common*"]["fill_pattern"], "grid")
         self.assertEqual(infill["bottom_solid_layers"], "3")
         self.assertEqual(infill["avoid_crossing_perimeters"], "1")
         printer = self.ini["printer:*common*"]

@@ -30,7 +30,7 @@ From `reference/cura/3D Potter Standard.3mf` (Cura machine) and the Cura 5.12 jo
 
 `no_bottom__layers.gcode` has `bottom_layers = 0`. `Bottom_Layers.gcode` has `bottom_layers = 3`. Both spiralize after the base.
 
-Lab `Instructions.txt` says to match **line width** to the nozzle on the machine. It does not scale layer height with the tip. 3D Potter does not publish a layer-height-to-nozzle percentage. This bundle keeps **1.5 mm layer** on every nozzle and sets line width equal to the selected nozzle.
+Lab `Instructions.txt` says to match **line width** to the nozzle on the machine. It does not scale layer height with the tip. 3D Potter does not publish a layer-height-to-nozzle percentage. This bundle keeps **1.5 mm layer** on every nozzle and sets line width equal to the selected nozzle. Print profile names omit the layer height. Sparse infill is **grid**, solid bottoms are **Archimedean chords**, and solid tops are **rectilinear**.
 
 ## Retraction
 

@@ -3,3 +3,6 @@ min_slic3r_version = 2.9.0
 0.1.1 Layer height is the documented 1.5 mm Fine value on every nozzle. Line width equals the installed nozzle (lab Cura notes). Stopped scaling layer height as 30% of nozzle.
 0.1.2 Add 1.5mm Infill Retract print profile and Clay Potterbot Retract filament (80 mm @ 17 mm/s, 5 mm Z-hop). Vase profiles stay unretracted. Not the FAQ 1000 mm/s recipe.
 0.1.3 Retract and 5 mm Z-hop are printer settings on every profile. Dropped the separate retract filament. Infill print profile renamed 1.5mm Infill.
+0.1.4 Drop 1.5 mm from print profile names (layer height is still 1.5 mm). Bottoms concentric, tops rectilinear, sparse infill grid.
+0.1.5 Bottom fill pattern is Archimedean chords instead of concentric.
+0.1.6 Printer presets are named 1mm Nozzle through 10mm Nozzle.
