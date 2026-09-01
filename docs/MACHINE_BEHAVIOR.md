@@ -39,7 +39,7 @@ This profile is **experimental**. It is not production-ready.
 | Filament diameter | 1.75 mm | Confirmed |
 | Filament compensation | 94% (`M221 T0 S94.00`) | Confirmed in ideaMaker. PrusaSlicer filament preset uses multiplier **1.00** (operator’s proven Prusa PLA). |
 | First-layer nozzle / bed | `M109 T0 S230` / `M190 S60` | Confirmed in ideaMaker. PrusaSlicer preset is **215 °C first layer / 225 °C other / 60 °C bed** (operator’s proven Prusa PLA). |
-| First layer height | 0.300 mm then 0.200 mm | Confirmed in ideaMaker. PrusaSlicer print family keeps **XL 0.20 mm** first layer (`skirts = 0`, first-layer speed 40 / infill 100). Start G-code already purges. |
+| First layer height | 0.300 mm then 0.200 mm | Confirmed in ideaMaker. PrusaSlicer print family keeps **XL 0.20 mm** first layer (`skirts = 0`, first-layer speed 40 / infill 100, accel 500). Start G-code already purges. |
 | Copperhead hotends | Not mentioned in G-code | Assumption (operator-stated hardware) |
 | PLA temps / flow / retract | ideaMaker 230 °C / 94% / 1.5 mm at F2400 | PrusaSlicer uses operator Prusa PLA: 215/225 °C, multiplier 1.00, retract still 1.5 mm / 40 mm/s. Dual standby remains 180 °C. |
 
@@ -71,7 +71,7 @@ This profile is **experimental**. It is not production-ready.
 | `T0` | Left and dual files | Confirmed |
 | `T1` | Right-only and dual files | Confirmed in `RightonlyExtruder.gcode` and `MulticolorRaise3d.gcode` |
 | `G10` / `G11` | No | |
-| `SET_VELOCITY_LIMIT` | `ACCEL=5000`, `ACCEL=2000`, `SQUARE_CORNER_VELOCITY=10` | Confirmed Klipper. `MulticolorRaise3d.gcode`: 5469×5000 and 5468×2000 (print vs travel). PrusaSlicer 2.9.6 emits `M204 S` instead; post-process converts to `SET_VELOCITY_LIMIT`. Print profiles: 2000 print / 5000 travel and first layer. |
+| `SET_VELOCITY_LIMIT` | `ACCEL=5000`, `ACCEL=2000`, `SQUARE_CORNER_VELOCITY=10` | Confirmed Klipper. `MulticolorRaise3d.gcode`: 5469×5000 and 5468×2000 (print vs travel). PrusaSlicer 2.9.6 emits `M204 S` instead; post-process converts to `SET_VELOCITY_LIMIT`. Print profiles: 2000 print / 5000 travel / 500 first layer / 250 short travel. |
 | `M221` | Start `S94`, end `S100` | Confirmed |
 | `M106` | `S0`, `S128`, `S255` | Confirmed; first layer fan off |
 
@@ -108,7 +108,7 @@ Dual file: `M221` T0 and T1 `S100` twice around `M1002`, `M104 T0 S0` and `M104 
 | Item | Value | Status |
 | --- | --- | --- |
 | Travel | `F9000` (150 mm/s) | Confirmed. PrusaSlicer travel is 150 (XL IS uses 400; clipped to Hyper FFF L1 / this machine). |
-| First-layer skirt | `F900` (15 mm/s) | Confirmed in ideaMaker. Print family does **not** copy this (first layer 40 mm/s walls and infill, 500 mm/s², no skirt). |
+| First-layer skirt | `F900` (15 mm/s) | Confirmed in ideaMaker. Print family does **not** copy this (first layer 40 mm/s walls / 100 mm/s infill, 500 mm/s², no skirt). |
 | Later print moves | `F1500` 25 mm/s, `F2400` 40 mm/s, `F4500` 75 mm/s, `F6000` 100 mm/s, `F7200` 120 mm/s, `F9000` 150 mm/s (with E). Both ideaMaker files reach **150 mm/s** on print moves, not only 75. | Confirmed. PrusaSlicer SPEED is 150; STRUCTURAL is XL 80/45/120/140. Do not flatten SPEED to 75. |
 | Retract | 1.5 mm at `F2400` (40 mm/s) | Confirmed |
 | Absolute extruder | ideaMaker: `M82`. PrusaSlicer Dual profile: `M83` (wipe tower) | ideaMaker confirmed; PrusaSlicer **changed** |
@@ -130,4 +130,4 @@ These are 2022 **Marlin** PrusaSlicer profiles for pre-Hyper Speed Pro2/Pro2 Plu
 6. Right nozzle and dual-head lift: dual G-code confirmed; right-only G-code confirmed (`RightonlyExtruder.gcode`). Confirm firmware XY offset (do not also slice 25 mm). Dual purge is in-place `E10`/`E-11` at home, then profile travel to X80 at Z15. Right-only uses the same `X80 Y0` wipe as left after homing on T1. Keep T1 paths and the wipe tower off X < 25 mm; measure the real keep-out. Watch Stage 6–7 for collisions and ~25 mm shift.
 7. Dual tool-change: PrusaSlicer wipe tower (default X50 Y140; you can drag) vs ideaMaker’s octagon at ~X50 Y241 in `MulticolorRaise3d.gcode`. Confirm the tower is where you put it and ooze does not hit the part.
 8. Relative E (`M83`) vs ideaMaker `M82` — inspect first dual slice for mixed E mode.
-9. Volumetric limit 15 mm³/s is Hyper FFF L1. Print temps are the operator’s Prusa PLA (215/225 °C, 1.00 flow). ideaMaker was 230 °C / 94%. Dual standby stays 180 °C; filament idle 70 °C is not emitted in tool-change G-code.
+9. Volumetric limit is `min(operator XL, Hyper FFF L1 15 mm³/s)`. Print temps and cooling are the operator’s matching `* XL` presets. ideaMaker PLA was 230 °C / 94%. Dual standby stays 180 °C; filament idle is not emitted in tool-change G-code.
