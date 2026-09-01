@@ -30,3 +30,4 @@ min_slic3r_version = 2.9.0
 0.5.23 Drop {max_layer_z} from start G-code (not valid there). Bounding Box Z is filled by post-process from layer ;Z: tags.
 0.5.24 RaiseTouch times go immediately before ;LAYER:N (ideaMaker). Do not attach them to PrusaSlicer's ;LAYER_CHANGE.
 0.5.25 Layer 0 remaining uses footer seconds (not M73 minute rounding). Bounding box XY from print moves after M1001. Copy slicer ;HEIGHT: after ;LAYER:N/;Z: — never HEIGHT in custom G-code (PrusaSlicer reserved keyword).
+0.5.26 First layer follows XL IS 0.4: 40 mm/s walls and infill, 500 mm/s2 accel (was ideaMaker travel 5000). SPEED vs STRUCTURAL later-layer speeds unchanged; STRUCTURAL also uses XL external-perimeter accel 1500.

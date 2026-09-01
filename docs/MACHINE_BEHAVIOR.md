@@ -108,7 +108,7 @@ Dual file: `M221` T0 and T1 `S100` twice around `M1002`, `M104 T0 S0` and `M104 
 | Item | Value | Status |
 | --- | --- | --- |
 | Travel | `F9000` (150 mm/s) | Confirmed. PrusaSlicer travel is 150 (XL IS uses 400; clipped to Hyper FFF L1 / this machine). |
-| First-layer skirt | `F900` (15 mm/s) | Confirmed in ideaMaker. Print family does **not** copy this (XL first-layer 40/100, no skirt). |
+| First-layer skirt | `F900` (15 mm/s) | Confirmed in ideaMaker. Print family does **not** copy this (first layer 40 mm/s walls and infill, 500 mm/s², no skirt). |
 | Later print moves | `F1500` 25 mm/s, `F2400` 40 mm/s, `F4500` 75 mm/s, `F6000` 100 mm/s, `F7200` 120 mm/s, `F9000` 150 mm/s (with E). Both ideaMaker files reach **150 mm/s** on print moves, not only 75. | Confirmed. PrusaSlicer SPEED is 150; STRUCTURAL is XL 80/45/120/140. Do not flatten SPEED to 75. |
 | Retract | 1.5 mm at `F2400` (40 mm/s) | Confirmed |
 | Absolute extruder | ideaMaker: `M82`. PrusaSlicer Dual profile: `M83` (wipe tower) | ideaMaker confirmed; PrusaSlicer **changed** |
