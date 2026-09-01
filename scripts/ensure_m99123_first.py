@@ -26,6 +26,10 @@ M104_T = re.compile(r"^M104\s+T([01])\s+S(-?\d+(?:\.\d+)?)\b", re.I)
 T_SEL = re.compile(r"^T([01])\b", re.I)
 M73 = re.compile(r"^M73\b(?P<body>.*)$", re.I)
 LAYER_NUM = re.compile(r"^;LAYER:(\d+)\s*$")
+HEIGHT_LINE = re.compile(r"^;HEIGHT:(-?\d+(?:\.\d+)?)\s*$")
+Z_LINE = re.compile(r"^;Z:(-?\d+(?:\.\d+)?)\s*$")
+MOVE_CMD = re.compile(r"^G([0123])\b", re.I)
+AXIS_XY = re.compile(r"\b([XY])(-?\d+(?:\.\d+)?)", re.I)
 EST_TIME = re.compile(r"^;\s*estimated printing time \(normal mode\)\s*=\s*(.+)$", re.I)
 FILAMENT_MM = re.compile(r"^;\s*filament used \[mm\]\s*=\s*(.+)$", re.I)
 FILAMENT_COST = re.compile(r"^;\s*filament cost\s*=\s*(.+)$", re.I)
@@ -223,6 +227,27 @@ def _material_comments(total: int, mm: list[float], cost: list[float]) -> list[s
     return out
 
 
+def _clock_from_m73(
+    total: int | None, remaining: int | None, pct: float | None
+) -> tuple[int, int] | None:
+    """Map Prusa M73 (P percent, R minutes) to ideaMaker second clocks.
+
+    At P=0 use the footer second total so layer 0 is not off by M73's minute rounding.
+    """
+    if remaining is None and total is not None and pct is not None:
+        remaining = int(round(total * (100.0 - min(max(pct, 0.0), 100.0)) / 100.0))
+    if remaining is None:
+        return None
+    if total is None:
+        total = remaining
+    if pct is not None and pct <= 0:
+        return 0, total
+    if pct is not None and pct >= 100:
+        return total, 0
+    printed = min(max(total - remaining, 0), total)
+    return printed, total - printed
+
+
 def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
     """Write ideaMaker time comments RaiseTouch reads at `;LAYER:N`.
 
@@ -232,6 +257,8 @@ def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
     with `R` in minutes (Prusa firmware); RaiseTouch does not use `M73`.
     PrusaSlicer also writes `;LAYER_CHANGE`; attaching times there leaves `;Z:` /
     `;HEIGHT:` between the clock and `;LAYER:`, and RaiseTouch ignores them.
+    Do not put `HEIGHT` in custom G-code (PrusaSlicer reserved keyword). Copy the
+    slicer's own `;HEIGHT:` after `;LAYER:N` / `;Z:` in post-process instead.
     File-picker grams/price/thumbnail still come from ideaMaker `.data`.
     """
     has_layer_num = any(_layer_num(line) is not None for line in lines)
@@ -255,16 +282,13 @@ def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
             continue
         r_min = float(r_match.group(1)) if r_match else None
         pct = float(p_match.group(1)) if p_match else None
-        if total is None and r_min is not None:
-            total = int(round(max(r_min, 0) * 60))
-        if r_min is not None:
-            remaining = int(round(max(r_min, 0) * 60))
-        elif total is not None and pct is not None:
-            remaining = int(round(total * (100.0 - min(max(pct, 0.0), 100.0)) / 100.0))
-        else:
+        remaining = int(round(max(r_min, 0) * 60)) if r_min is not None else None
+        if total is None and remaining is not None:
+            total = remaining
+        clock = _clock_from_m73(total, remaining, pct)
+        if clock is None:
             continue
-        printed = max(0, (total or 0) - remaining)
-        events.append((i, printed, remaining))
+        events.append((i, clock[0], clock[1]))
 
     if total is None and events:
         total = events[0][1] + events[0][2]
@@ -272,6 +296,8 @@ def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
     def times_at(line_idx: int, layer_n: int | None) -> tuple[int, int] | None:
         if total is None:
             return None
+        if layer_n == 0:
+            return 0, total
         prev = [event for event in events if event[0] <= line_idx]
         if prev:
             return prev[-1][1], prev[-1][2]
@@ -333,6 +359,42 @@ def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
     return out, changed
 
 
+def copy_slicer_height_after_layer(lines: list[str]) -> tuple[list[str], int]:
+    """Place PrusaSlicer's reserved `;HEIGHT:` after `;LAYER:N` / `;Z:` (ideaMaker).
+
+    Never put `HEIGHT` in custom G-code: PrusaSlicer warns that
+    `HEIGHT:{layer_height}` in Before layer change G-code breaks visualization
+    and print-time estimation. The slicer already emits `;HEIGHT:` on
+    `;LAYER_CHANGE`; copy that value to the ideaMaker spot.
+    """
+    out: list[str] = []
+    last_height: str | None = None
+    changed = 0
+    i = 0
+    while i < len(lines):
+        stripped = lines[i].strip()
+        if HEIGHT_LINE.match(stripped):
+            last_height = stripped
+            out.append(lines[i])
+            i += 1
+            continue
+        if _layer_num(lines[i]) is not None:
+            out.append(lines[i])
+            i += 1
+            if i < len(lines) and Z_LINE.match(lines[i].strip()):
+                out.append(lines[i])
+                i += 1
+            if last_height is not None and not (
+                i < len(lines) and HEIGHT_LINE.match(lines[i].strip())
+            ):
+                out.append(last_height)
+                changed += 1
+            continue
+        out.append(lines[i])
+        i += 1
+    return out, changed
+
+
 def max_layer_z_from_gcode(lines: list[str]) -> float | None:
     """Highest post-M1001 `;Z:` layer tag (PrusaSlicer layer-change comment)."""
     zmax: float | None = None
@@ -343,15 +405,66 @@ def max_layer_z_from_gcode(lines: list[str]) -> float | None:
             continue
         if not after_m1001:
             continue
-        match = re.match(r"^;Z:(-?\d+(?:\.\d+)?)\s*$", line.strip())
+        match = Z_LINE.match(line.strip())
         if match:
             z = float(match.group(1))
             zmax = z if zmax is None else max(zmax, z)
     return zmax
 
 
+def print_aabb_xy(lines: list[str]) -> tuple[float, float, float, float] | None:
+    """Axis-aligned XY of G0/G1/G2/G3 after M1001 (print + wipe tower, not start purge)."""
+    x: float | None = None
+    y: float | None = None
+    xmin = xmax = ymin = ymax = None
+    relative = False
+    in_print = False
+    for line in lines:
+        code = _code(line)
+        if not code:
+            continue
+        upper = code.upper()
+        if upper == "M1001":
+            in_print = True
+            continue
+        if upper == "M1002":
+            break
+        if not in_print:
+            continue
+        if upper == "G90":
+            relative = False
+            continue
+        if upper == "G91":
+            relative = True
+            continue
+        if not MOVE_CMD.match(code):
+            continue
+        axes = {m.group(1).upper(): float(m.group(2)) for m in AXIS_XY.finditer(code)}
+        if relative:
+            if x is None or y is None:
+                continue
+            if "X" in axes:
+                x += axes["X"]
+            if "Y" in axes:
+                y += axes["Y"]
+        else:
+            if "X" in axes:
+                x = axes["X"]
+            if "Y" in axes:
+                y = axes["Y"]
+        if x is None or y is None:
+            continue
+        xmin = x if xmin is None else min(xmin, x)
+        xmax = x if xmax is None else max(xmax, x)
+        ymin = y if ymin is None else min(ymin, y)
+        ymax = y if ymax is None else max(ymax, y)
+    if xmin is None:
+        return None
+    return xmin, ymin, xmax, ymax
+
+
 def inject_bounding_box(lines: list[str]) -> tuple[list[str], int]:
-    """ideaMaker header Z extent. `{max_layer_z}` is not valid in start G-code."""
+    """ideaMaker header AABB. `{max_layer_z}` is not valid in start G-code."""
     if any(line.startswith(";Bounding Box:") for line in lines[:80]):
         return lines, 0
     zmax = max_layer_z_from_gcode(lines)
@@ -360,7 +473,14 @@ def inject_bounding_box(lines: list[str]) -> tuple[list[str], int]:
     firmware = next((i for i, line in enumerate(lines[:120]) if line.startswith(";Firmware:")), None)
     if firmware is None:
         return lines, 0
-    box = f";Bounding Box: 0.000 0.000 305.000 305.000 0.000 {zmax:.3f}"
+    xy = print_aabb_xy(lines)
+    if xy is None:
+        xmin, ymin, xmax, ymax = 0.0, 0.0, 305.0, 305.0
+    else:
+        xmin, ymin, xmax, ymax = xy
+    box = (
+        f";Bounding Box: {xmin:.3f} {ymin:.3f} {xmax:.3f} {ymax:.3f} 0.000 {zmax:.3f}"
+    )
     return lines[: firmware + 1] + [box] + lines[firmware + 1 :], 1
 
 
@@ -376,6 +496,7 @@ def rewrite(path: Path) -> str:
     lines, n_m204 = convert_m204_lines(lines)
     lines, n_preheat = insert_next_tool_preheat(lines)
     lines, n_times = emit_raisetouch_times(lines)
+    lines, n_height = copy_slicer_height_after_layer(lines)
     lines, n_bbox = inject_bounding_box(lines)
     idx = next((i for i, line in enumerate(lines) if line.startswith("M99123")), None)
     moved = False
@@ -383,7 +504,7 @@ def rewrite(path: Path) -> str:
         header = lines.pop(idx)
         lines.insert(0, header)
         moved = True
-    if moved or n_m204 or n_preheat or n_times or n_bbox:
+    if moved or n_m204 or n_preheat or n_times or n_height or n_bbox:
         path.write_bytes((newline.decode("ascii").join(lines) + newline.decode("ascii")).encode("utf-8"))
     if idx is None:
         return "missing"

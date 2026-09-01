@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from validate_gcode import validate  # noqa: E402
 from ensure_m99123_first import (  # noqa: E402
     convert_m204_line,
+    copy_slicer_height_after_layer,
     emit_raisetouch_times,
     inject_bounding_box,
     insert_next_tool_preheat,
@@ -201,6 +202,45 @@ class GcodeSafetyTests(unittest.TestCase):
         out2, n2 = emit_raisetouch_times(out)
         self.assertEqual(n2, 0)
 
+    def test_emit_raisetouch_times_layer0_uses_footer_seconds(self) -> None:
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
+        layer0 = next(i for i, line in enumerate(src) if line == ";LAYER:0")
+        padded = (
+            src[:layer0]
+            + [
+                "M73 P0 R193",
+                ";LAYER_CHANGE",
+                ";Z:0.2",
+                ";HEIGHT:0.2",
+                ";LAYER:0",
+            ]
+            + src[layer0 + 1 :]
+            + ["; estimated printing time (normal mode) = 3h 16m 9s"]
+        )
+        out, _n = emit_raisetouch_times(padded)
+        i0 = out.index(";LAYER:0")
+        self.assertEqual(out[i0 - 2 : i0], [";PRINTING_TIME: 0", ";REMAINING_TIME: 11769"])
+
+    def test_copy_slicer_height_after_layer_not_custom_gcode(self) -> None:
+        src = [
+            ";LAYER_CHANGE",
+            ";Z:0.2",
+            ";HEIGHT:0.2",
+            ";PRINTING_TIME: 0",
+            ";REMAINING_TIME: 3600",
+            ";LAYER:0",
+            ";Z:0.2",
+            "G92 E0",
+        ]
+        out, n = copy_slicer_height_after_layer(src)
+        self.assertEqual(n, 1)
+        i0 = out.index(";LAYER:0")
+        self.assertEqual(out[i0 : i0 + 3], [";LAYER:0", ";Z:0.2", ";HEIGHT:0.2"])
+        self.assertEqual(out.count(";HEIGHT:0.2"), 2)
+        out2, n2 = copy_slicer_height_after_layer(out)
+        self.assertEqual(n2, 0)
+        self.assertEqual(out2, out)
+
     def test_emit_raisetouch_times_interpolates_without_m73(self) -> None:
         src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
         layer0 = next(i for i, line in enumerate(src) if line == ";LAYER:0")
@@ -221,7 +261,7 @@ class GcodeSafetyTests(unittest.TestCase):
         src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
         out, n = inject_bounding_box(src)
         self.assertEqual(n, 1)
-        self.assertIn(";Bounding Box: 0.000 0.000 305.000 305.000 0.000 0.300", out)
+        self.assertIn(";Bounding Box: 100.000 100.000 120.000 100.000 0.000 0.300", out)
         out2, n2 = inject_bounding_box(out)
         self.assertEqual(n2, 0)
 
