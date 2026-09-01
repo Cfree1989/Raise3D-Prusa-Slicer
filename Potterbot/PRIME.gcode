@@ -1,0 +1,4 @@
+;Run Extruder
+G91
+G1 E100000 F30000
+G90

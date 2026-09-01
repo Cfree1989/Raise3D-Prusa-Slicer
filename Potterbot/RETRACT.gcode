@@ -1,0 +1,4 @@
+;Retract Extruder
+G91
+G1 E-100000 F20000
+G90
