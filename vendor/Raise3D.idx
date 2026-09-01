@@ -28,3 +28,4 @@ min_slic3r_version = 2.9.0
 0.5.18 Add PETG/TPU/ASA/PA-CF/ABS-GF Raise3D from operator XL temps. Filaments compatible only with this Dual 0.4 printer. RaiseTouch names are [Raise3D] plus filament_type.
 0.5.19 Filament cost and spool_weight match the operator XL Generic-derived presets.
 0.5.23 Drop {max_layer_z} from start G-code (not valid there). Bounding Box Z is filled by post-process from layer ;Z: tags.
+0.5.24 RaiseTouch times go immediately before ;LAYER:N (ideaMaker). Do not attach them to PrusaSlicer's ;LAYER_CHANGE.

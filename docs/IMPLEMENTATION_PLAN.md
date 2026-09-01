@@ -4,7 +4,7 @@ Status: **experimental Dual bundle**. Dual start/tool-change/end matched to `Mul
 
 ## What this pass includes
 
-1. Vendor bundle `vendor/Raise3D.ini` + `vendor/Raise3D.idx` for Configuration Wizard / local vendor drop-in. G-code thumbnails off; print `post_process` runs `C:\Windows\py.exe -3` (latest Python 3) on `scripts/ensure_m99123_first.py` then `scripts/validate_gcode.py` (M99123 on line 1, `M204 S` → `SET_VELOCITY_LIMIT`, next-tool `M104` before swap `M109`).
+1. Vendor bundle `vendor/Raise3D.ini` + `vendor/Raise3D.idx` for Configuration Wizard / local vendor drop-in. G-code thumbnails off; print `post_process` runs `C:\Windows\py.exe -3` (latest Python 3) on `scripts/ensure_m99123_first.py` then `scripts/validate_gcode.py` (M99123 on line 1, `M204 S` → `SET_VELOCITY_LIMIT`, next-tool `M104` before swap `M109`, RaiseTouch times immediately before `;LAYER:N`).
 2. Importable config bundle `profiles/Raise3D-Pro2Plus-HS-0.4-bundle.ini` (`File → Import → Import Config Bundle`).
 3. Printer: Raise3D Pro2 Plus Hyper Speed 0.4 Dual. Unused tools skipped with `is_extruder_used`.
 4. Filament: PLA / PETG / TPU / ASA / PA-CF / ABS-GF Raise3D (G-code name `[Raise3D] ` + `filament_type`). Temps from the operator’s matching `* XL` user presets. PLA also matches the proven Prusa PLA. Dual standby 180 °C. Volumetric 15 mm³/s except TPU 4. Compatible only with this Dual 0.4 printer.

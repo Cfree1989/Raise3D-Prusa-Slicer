@@ -161,11 +161,23 @@ class GcodeSafetyTests(unittest.TestCase):
 
     def test_emit_raisetouch_times_from_m73_and_stats(self) -> None:
         src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
-        g1 = next(i for i, line in enumerate(src) if line.startswith("G1 X100"))
+        layer0 = next(i for i, line in enumerate(src) if line == ";LAYER:0")
         padded = (
-            src[: g1 + 1]
-            + ["M73 P0 R193", "M73 P50 R96", ";LAYER:1"]
-            + src[g1 + 1 :]
+            src[:layer0]
+            + [
+                "M73 P0 R193",
+                ";LAYER_CHANGE",
+                ";Z:0.2",
+                ";HEIGHT:0.2",
+                ";LAYER:0",
+                "G1 X100 Y100 Z0.2 F900",
+                "M73 P50 R96",
+                ";LAYER_CHANGE",
+                ";Z:0.4",
+                ";HEIGHT:0.2",
+                ";LAYER:1",
+            ]
+            + src[layer0 + 1 :]
             + [
                 "; filament used [mm] = 20436.15, 0.00",
                 "; filament cost = 1.22, 0.00",
@@ -175,10 +187,12 @@ class GcodeSafetyTests(unittest.TestCase):
         out, n = emit_raisetouch_times(padded)
         self.assertGreaterEqual(n, 3)
         self.assertNotIn("M73 P0 R193", out)
-        self.assertIn(";PRINTING_TIME: 0", out)
-        self.assertIn(";REMAINING_TIME: 11580", out)
-        self.assertIn(";PRINTING_TIME: 5820", out)
-        self.assertIn(";REMAINING_TIME: 5760", out)
+        i0 = out.index(";LAYER:0")
+        self.assertEqual(out[i0 - 2 : i0], [";PRINTING_TIME: 0", ";REMAINING_TIME: 11580"])
+        i1 = out.index(";LAYER:1")
+        self.assertEqual(out[i1 - 2 : i1], [";PRINTING_TIME: 5820", ";REMAINING_TIME: 5760"])
+        lc = out.index(";LAYER_CHANGE")
+        self.assertFalse(out[lc - 1].startswith(";REMAINING_TIME:"))
         fw = next(i for i, line in enumerate(out) if line.startswith(";Firmware:"))
         self.assertEqual(out[fw + 1], ";Print Time: 11580")
         self.assertIn(";Material#1 Used: 20436.2", out)
@@ -186,6 +200,22 @@ class GcodeSafetyTests(unittest.TestCase):
         self.assertTrue(any(line.startswith(";Print Time:") for line in out[-10:]))
         out2, n2 = emit_raisetouch_times(out)
         self.assertEqual(n2, 0)
+
+    def test_emit_raisetouch_times_interpolates_without_m73(self) -> None:
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
+        layer0 = next(i for i, line in enumerate(src) if line == ";LAYER:0")
+        padded = (
+            src[:layer0]
+            + [";LAYER_CHANGE", ";Z:0.2", ";LAYER:0", ";LAYER_CHANGE", ";Z:0.4", ";LAYER:2"]
+            + src[layer0 + 1 :]
+            + ["; estimated printing time (normal mode) = 1h 0m 0s"]
+        )
+        out, n = emit_raisetouch_times(padded)
+        self.assertGreater(n, 0)
+        i0 = out.index(";LAYER:0")
+        self.assertEqual(out[i0 - 2 : i0], [";PRINTING_TIME: 0", ";REMAINING_TIME: 3600"])
+        i2 = out.index(";LAYER:2")
+        self.assertEqual(out[i2 - 2 : i2], [";PRINTING_TIME: 3600", ";REMAINING_TIME: 0"])
 
     def test_inject_bounding_box_from_layer_z(self) -> None:
         src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()

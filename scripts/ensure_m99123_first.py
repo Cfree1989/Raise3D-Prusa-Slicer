@@ -25,6 +25,7 @@ M109_T = re.compile(r"^M109\s+T([01])\s+S(\d+(?:\.\d+)?)\b", re.I)
 M104_T = re.compile(r"^M104\s+T([01])\s+S(-?\d+(?:\.\d+)?)\b", re.I)
 T_SEL = re.compile(r"^T([01])\b", re.I)
 M73 = re.compile(r"^M73\b(?P<body>.*)$", re.I)
+LAYER_NUM = re.compile(r"^;LAYER:(\d+)\s*$")
 EST_TIME = re.compile(r"^;\s*estimated printing time \(normal mode\)\s*=\s*(.+)$", re.I)
 FILAMENT_MM = re.compile(r"^;\s*filament used \[mm\]\s*=\s*(.+)$", re.I)
 FILAMENT_COST = re.compile(r"^;\s*filament cost\s*=\s*(.+)$", re.I)
@@ -173,11 +174,42 @@ def parse_filament_stats(lines: list[str]) -> tuple[list[float], list[float]]:
     return mm, cost
 
 
+def _layer_num(line: str) -> int | None:
+    match = LAYER_NUM.match(line.strip())
+    return int(match.group(1)) if match else None
+
+
 def _layer_marker(line: str, prefer_layer_change: bool) -> bool:
-    stripped = line.strip()
+    """ideaMaker / RaiseTouch key off `;LAYER:N`, not PrusaSlicer's `;LAYER_CHANGE`."""
     if prefer_layer_change:
-        return stripped.startswith(";LAYER_CHANGE")
-    return bool(re.match(r"^;LAYER:\d+", stripped))
+        return line.strip().startswith(";LAYER_CHANGE")
+    return _layer_num(line) is not None
+
+
+def _strip_orphaned_layer_times(lines: list[str], keep_layer_change: bool) -> list[str]:
+    """Drop time comments that are not immediately before the RaiseTouch layer marker."""
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        if (
+            i + 2 < len(lines)
+            and lines[i].startswith(";PRINTING_TIME:")
+            and lines[i + 1].startswith(";REMAINING_TIME:")
+            and (
+                _layer_num(lines[i + 2]) is not None
+                or (keep_layer_change and lines[i + 2].strip().startswith(";LAYER_CHANGE"))
+            )
+        ):
+            out.append(lines[i])
+            out.append(lines[i + 1])
+            i += 2
+            continue
+        if lines[i].startswith(";PRINTING_TIME:") or lines[i].startswith(";REMAINING_TIME:"):
+            i += 1
+            continue
+        out.append(lines[i])
+        i += 1
+    return out
 
 
 def _material_comments(total: int, mm: list[float], cost: list[float]) -> list[str]:
@@ -192,16 +224,23 @@ def _material_comments(total: int, mm: list[float], cost: list[float]) -> list[s
 
 
 def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
-    """Write ideaMaker time comments RaiseTouch reads at layer changes.
+    """Write ideaMaker time comments RaiseTouch reads at `;LAYER:N`.
 
     File-picker grams/price still come from ideaMaker `.data`. Tune remaining time
-    is `;REMAINING_TIME:` (seconds) next to `;LAYER:` / `;LAYER_CHANGE:`. A single
-    block after M1001 is not enough: during heat-up the UI estimates from file
-    position (0.2% of the file → ~17 h on a 2 h print).
+    is `;REMAINING_TIME:` (seconds) on the two lines immediately before `;LAYER:N`.
+    PrusaSlicer also writes `;LAYER_CHANGE`; attaching times there leaves `;Z:` /
+    `;HEIGHT:` between the clock and `;LAYER:`, and RaiseTouch ignores them.
+    A single block after M1001 is not enough: during heat-up the UI estimates from
+    file position (0.2% of the file → ~17 h on a 2 h print).
     """
+    has_layer_num = any(_layer_num(line) is not None for line in lines)
+    prefer_lc = not has_layer_num
+    lines = _strip_orphaned_layer_times(lines, keep_layer_change=prefer_lc)
+
     total = parse_estimated_seconds(lines)
     mm, cost = parse_filament_stats(lines)
-    prefer_lc = any(line.strip().startswith(";LAYER_CHANGE") for line in lines)
+    layer_ns = [_layer_num(line) for line in lines if _layer_num(line) is not None]
+    max_layer = max(layer_ns) if layer_ns else 0
 
     events: list[tuple[int, int, int]] = []
     for i, line in enumerate(lines):
@@ -229,14 +268,19 @@ def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
     if total is None and events:
         total = events[0][1] + events[0][2]
 
-    def times_at(line_idx: int) -> tuple[int, int] | None:
+    def times_at(line_idx: int, layer_n: int | None) -> tuple[int, int] | None:
         if total is None:
             return None
-        if not events:
-            return 0, total
         prev = [event for event in events if event[0] <= line_idx]
-        event = prev[-1] if prev else events[0]
-        return event[1], event[2]
+        if prev:
+            return prev[-1][1], prev[-1][2]
+        if events:
+            return 0, total
+        if layer_n is not None and max_layer > 0:
+            printed = int(round(total * layer_n / max_layer))
+            printed = min(max(printed, 0), total)
+            return printed, total - printed
+        return 0, total
 
     out: list[str] = []
     changed = 0
@@ -250,7 +294,7 @@ def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
                 and out[-1].startswith(";REMAINING_TIME:")
                 and out[-2].startswith(";PRINTING_TIME:")
             )
-            pair = times_at(i)
+            pair = times_at(i, _layer_num(line))
             if not already and pair is not None:
                 printed, remaining = pair
                 out.append(f";PRINTING_TIME: {printed}")
@@ -269,16 +313,17 @@ def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
         out = out[: firmware + 1] + block + out[firmware + 1 :]
         changed += 1
 
-    try:
-        m1001 = next(i for i, line in enumerate(out) if _code(line).upper() == "M1001")
-    except StopIteration:
-        m1001 = None
-    if m1001 is not None:
-        window = out[m1001 + 1 : m1001 + 16]
-        if not any(line.startswith(";REMAINING_TIME:") for line in window):
-            block = [";PRINTING_TIME: 0", f";REMAINING_TIME: {total}"]
-            out = out[: m1001 + 1] + block + out[m1001 + 1 :]
-            changed += 1
+    if not has_layer_num:
+        try:
+            m1001 = next(i for i, line in enumerate(out) if _code(line).upper() == "M1001")
+        except StopIteration:
+            m1001 = None
+        if m1001 is not None:
+            window = out[m1001 + 1 : m1001 + 16]
+            if not any(line.startswith(";REMAINING_TIME:") for line in window):
+                block = [";PRINTING_TIME: 0", f";REMAINING_TIME: {total}"]
+                out = out[: m1001 + 1] + block + out[m1001 + 1 :]
+                changed += 1
 
     if not any(line.startswith(";Print Time:") for line in out[-40:]):
         out.extend(_material_comments(total, mm, cost))
