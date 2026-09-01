@@ -226,12 +226,13 @@ def _material_comments(total: int, mm: list[float], cost: list[float]) -> list[s
 def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
     """Write ideaMaker time comments RaiseTouch reads at `;LAYER:N`.
 
-    File-picker grams/price still come from ideaMaker `.data`. Tune remaining time
-    is `;REMAINING_TIME:` (seconds) on the two lines immediately before `;LAYER:N`.
+    ideaMaker 4.1.0: `;PRINTING_TIME:` / `;REMAINING_TIME:` are seconds printed /
+    seconds remaining. Known-good files put those two lines immediately before
+    `;LAYER:N` (then `;Z:` / `;HEIGHT:`). PrusaSlicer remaining_times emits `M73`
+    with `R` in minutes (Prusa firmware); RaiseTouch does not use `M73`.
     PrusaSlicer also writes `;LAYER_CHANGE`; attaching times there leaves `;Z:` /
     `;HEIGHT:` between the clock and `;LAYER:`, and RaiseTouch ignores them.
-    A single block after M1001 is not enough: during heat-up the UI estimates from
-    file position (0.2% of the file → ~17 h on a 2 h print).
+    File-picker grams/price/thumbnail still come from ideaMaker `.data`.
     """
     has_layer_num = any(_layer_num(line) is not None for line in lines)
     prefer_lc = not has_layer_num
