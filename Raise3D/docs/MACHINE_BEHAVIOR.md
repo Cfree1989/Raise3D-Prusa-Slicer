@@ -40,7 +40,7 @@ This profile is **experimental**. It is not production-ready.
 | Filament compensation | 94% (`M221 T0 S94.00`) | Confirmed in ideaMaker. PrusaSlicer filament preset uses multiplier **1.00** (operator’s proven Prusa PLA). |
 | First-layer nozzle / bed | `M109 T0 S230` / `M190 S60` | Confirmed in ideaMaker. PrusaSlicer preset is **215 °C first layer / 225 °C other / 60 °C bed** (operator’s proven Prusa PLA). |
 | First layer height | 0.300 mm then 0.200 mm | Confirmed in ideaMaker. PrusaSlicer print family keeps **XL 0.20 mm** first layer (`skirts = 0`, first-layer speed 40 / infill 100, accel 500). Start G-code already purges. |
-| Copperhead hotends | Not mentioned in G-code | Assumption (operator-stated hardware) |
+| Copperhead hotends | Not mentioned in G-code | Assumption (operator-stated hardware). Sequential gantry height **80 mm** vs ideaMaker stock Pro2 Plus HS **65 mm**. |
 | PLA temps / flow / retract | ideaMaker 230 °C / 94% / 1.5 mm at F2400 | PrusaSlicer uses operator Prusa PLA: 215/225 °C, multiplier 1.00, retract still 1.5 mm / 40 mm/s. Dual standby remains 180 °C. |
 
 ## Geometry
@@ -53,6 +53,7 @@ This profile is **experimental**. It is not production-ready.
 | This print bounding box | Left: X 101.505–203.495, Y 91.316–213.451, Z 0–43.100. Dual: X 69.430–183.760, Y 49.015–308.595, Z 0–60.900 (wipe tower exceeds 305 mm Y) | Confirmed |
 | Official Pro2 Plus volume | 305 × 305 × 605 mm | [Supported by Raise3D documentation](https://www.raise3d.com/pro2-series/) |
 | T1 keep-out | Leftmost ~25 mm (factory right-nozzle X offset in firmware; slicer XY offset 0) | Assumption requiring physical testing. PrusaSlicer 2.9.6 has no per-tool printable polygon. Bundle uses bed texture + default wipe tower X50 Y140 + validator. |
+| Sequential clearance | ideaMaker stock: gantry 65 mm; T0 box L37 R63 F45 B70; T1 box L62 R38 F45 B70. This bundle: `extruder_clearance_height` **80** (Copperhead), `extruder_clearance_radius` **45** (cylinder only) | Gantry: operator-stated. XY box: ideaMaker `RAISE3D Pro2 Plus - Hyper Speed.printer`. PrusaSlicer cannot take the per-nozzle rectangle. |
 | izumi 330 × 327.5 bed | Community Pro2 (not Plus), 2022 | Community-derived; **not used** |
 
 ## Special commands found

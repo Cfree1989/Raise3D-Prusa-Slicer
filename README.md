@@ -5,7 +5,7 @@ One folder per printer. Each folder is self-contained: vendor bundle, importable
 | Folder | Machine | Status |
 | --- | --- | --- |
 | [Raise3D](Raise3D/README.md) | Pro2 Plus Hyper Speed, 0.4 mm dual | Experimental PrusaSlicer bundle |
-| [Potterbot](Potterbot/README.md) | 3D Potterbot 9 (Duet 2 WiFi) | Source files only; no PrusaSlicer profile yet |
+| [Potterbot](Potterbot/README.md) | 3D Potterbot 9 (Duet 2 WiFi) | Experimental PrusaSlicer bundle (1–10 mm, vase hollow / vase bottom) |
 
 Add a new printer as a sibling folder with the same layout (`vendor/`, `profiles/`, `docs/`, `reference/`). Do not put printer-specific G-code or post-process scripts at the repo root.
 
@@ -23,4 +23,5 @@ Raise3D print profiles call post-process scripts by that absolute path. If the f
 
 ```text
 python -m unittest discover -s Raise3D/tests -v
+python -m unittest discover -s Potterbot/tests -v
 ```

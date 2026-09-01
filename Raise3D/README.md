@@ -93,6 +93,7 @@ Evidence labels: `docs/MACHINE_BEHAVIOR.md`
 - `M2000` pause (community; not in the ideaMaker file).
 - Dual: electronic lift on `T0`/`T1`, firmware XY offset (~25 mm X; slicer offset 0), in-place dual prime (`F200 E10` / `E-11`) when both tools are used, then `G1 X80 Y0 F9000` at Z15 (ideaMaker dual has no XY wipe; X20 left the fan in the blob). Tool-change standby 180 °C. Right-only uses the same `X80 Y0` wipe as left, after homing on T1. Wipe tower default X50 Y140 (relative E); this ideaMaker dual file placed the octagon around ~X50 Y241. Next-tool `M104` is inserted ~400 lines before swap `M109` (ideaMaker gaps 64–2200, median 762). T1 in this dual file stays ≥ ~X27; validator keep-out is X < 25.
 - Relative E (`M83`) instead of ideaMaker `M82`, required for PrusaSlicer's wipe tower. Left-only purge uses `E1` on the `X80 Y0` move (the extra 1 mm after the 29 mm blob).
+- Sequential printing: `extruder_clearance_height` 80 mm is the operator Copperhead nozzle-to-gantry distance (ideaMaker stock template is 65). Radius stays 45; ideaMaker sequential uses a per-nozzle box (T0 37/63/45/70, T1 62/38/45/70), which PrusaSlicer cannot represent. Complete individual objects is still off by default.
 
 ## Before you print
 

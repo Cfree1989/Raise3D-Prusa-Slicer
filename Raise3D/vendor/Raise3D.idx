@@ -35,3 +35,4 @@ min_slic3r_version = 2.9.0
 0.5.28 Filament cooling, PETG/TPU retract, and TPU/PA-CF volumetric match operator XL presets, clipped to Hyper FFF L1 (15 mm3/s) and E feedrate 40 mm/s. Dual standby G-code stays 180 C.
 0.5.29 First-layer infill speed is XL 100 mm/s (was 40). The 0.5.26 slowdown was a policy extra after the 5000 accel bug; 100 mm/s is under Hyper FFF L1. First-layer walls stay 40 mm/s / 500 mm/s2.
 0.5.30 Repo is a multi-printer tree. Post-process scripts live at C:\\Repos\\Prusa-Slicer-Print-Profiles\\Raise3D\\scripts\\.
+0.5.31 Sequential clearance height 80 mm (operator Copperhead; ideaMaker stock Pro2 Plus HS gantry is 65). Radius still 45 (PrusaSlicer cylinder; ideaMaker uses a per-nozzle box).

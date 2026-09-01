@@ -1,12 +1,89 @@
-# Potterbot 9
+# 3D Potterbot 9 — PrusaSlicer (experimental)
 
-3D Potterbot 9, Duet 2 WiFi, RepRapFirmware **2.04RC1** (2019-07-14). Axis limits from the board: **420 × 360 × 400 mm**. Physical bat is **15×15″** (about 381 × 381 mm), which is smaller than X travel and a bit larger than Y travel.
+This folder is the Potterbot pack in [PrusaSlicer print profiles](../README.md). Raise3D and later printers are siblings, not mixed in here.
 
-No PrusaSlicer profile yet. This folder is the source material:
+**This is not a production-ready profile.** It is a PrusaSlicer bundle derived from the official Cura **3D Potter Standard** project and two Cura 5.12 jobs on this machine (`no_bottom__layers.gcode`, `Bottom_Layers.gcode`). Validate on the machine before any unattended print. Keep Cura as the rollback slicer.
 
-- `Slicer Settings/Cura/3D Potter Standard.3mf` — official Cura project for Model 9 / Pro 9 / Super 9
-- `Test Vase Standard.gcode` / `Test Cylinder Standard.gcode` — known-good Simplify3D output
-- `PRINT START LOCATION.gcode`, `PRIME.gcode`, `RETRACT.gcode` — Duet macros
-- `Instructions.txt` — Cura / Simplify3D / DWC workflow
+Printer workflow: slice on the PC → upload `.gcode` in Duet Web Control (`192.168.42.14` on the printer Wi-Fi) → start from DWC. Prime clay from the Duet **Prime** macro if the ram is not already charged.
 
-When a bundle is added it should live in `profiles/` and `vendor/` here, same pattern as [Raise3D](../Raise3D/README.md).
+## What is in this pass
+
+| Preset | Name |
+| --- | --- |
+| Printer | 3D Potterbot 9, nozzles **1–10 mm** (default 5 mm) |
+| Filament | **Clay Potterbot** (vase, no mid-print retract) and **Clay Potterbot Retract** (infill / multi-object) |
+| Print | **Vase Hollow**, **Vase Bottom** (3 bottoms then spiral), and **Infill Retract** (15% concentric, 3 bottoms, spiral off) |
+
+Layer height is the official Fine value: **1.5 mm** on every nozzle. Line width equals the nozzle on the machine (lab Cura notes). Speeds are the official Cura values: **40 mm/s** print, **80** travel, **20** bottoms. Vase mid-print retract is off. **Infill Retract** + **Clay Potterbot Retract** pull **E-80 at 17 mm/s** (same feed as the official Cura end `F1000`) and hop **Z 5 mm**. That is not the FAQ 1000 mm @ 1000 mm/s recipe that stalls this motor. End G-code still lifts Z 10 mm and **retracts E-500**, then homes.
+
+The plater is the **15×15″ bat** clipped to Y travel: **381 × 360 × 400 mm**. Firmware travel is 420 × 360 × 400; X past 381 is unused so the model stays on the bat.
+
+## Install
+
+### Lab PC
+
+Print profiles call `scripts\validate_gcode.py` by **absolute path**. Put this repo at `C:\Repos\Prusa-Slicer-Print-Profiles`. Then install:
+
+1. **PrusaSlicer 2.9.6** (current stable).
+2. **Python 3** from [python.org](https://www.python.org/downloads/). Confirm `py -3 --version`.
+
+Required script:
+
+```text
+C:\Repos\Prusa-Slicer-Print-Profiles\Potterbot\scripts\validate_gcode.py
+```
+
+### A. Configuration Wizard (vendor bundle)
+
+1. Copy `vendor/Potterbot.ini` and `vendor/Potterbot.idx` to `%APPDATA%\PrusaSlicer\vendor\`
+2. Restart PrusaSlicer
+3. **Configuration Wizard** → Other FFF → enable **3D Potter (experimental)** → Potterbot 9 → pick the nozzle on the machine
+4. Confirm **Clay Potterbot** and a Vase Hollow / Vase Bottom profile appear
+
+### B. Import Config Bundle
+
+1. **File → Import → Import Config Bundle**
+2. Select `vendor/Potterbot.ini` or `profiles/Potterbot-9-bundle.ini`
+3. Select the nozzle that is installed, Clay Potterbot, and a vase profile
+
+## Source of truth
+
+- Official Cura machine / start / end: `reference/cura/3D Potter Standard.3mf`
+- Hollow vs 3-bottom vase: `reference/cura/no_bottom__layers.gcode`, `reference/cura/Bottom_Layers.gcode`
+- Axis limits and relative E: `reference/firmware/config.g`
+- Evidence notes: `docs/MACHINE_BEHAVIOR.md`
+
+2019 Simplify3D files in `reference/simplify3d/` are older known-good jobs (6 mm width, park `X320 Y70`). They were not used for start/end in this pass.
+
+## Assumptions you must treat as untested
+
+- 1.75 mm filament diameter matches how this ram’s E steps were calibrated (official Cura and Simplify3D both used it).
+- E-500 at the end is enough to stop ooze on your current clay body. The Duet **Retract** button is a much larger pull if you need it.
+- **Clay Potterbot Retract** (80 mm at 17 mm/s, 5 mm hop) is untested on the machine. It uses the official end-G-code feed, not the FAQ 1000 mm/s. If the motor complains, lower speed. If it still drools, raise length toward 200 then 500. Pair it with **1.5mm Infill Retract**. Vase jobs stay on **Clay Potterbot**.
+- Official docs only publish 1.5 mm layer height (Fine / 3D Potter Standard). That value is used on every nozzle. Line width still follows the installed tip. Tune layer height per clay if 1.5 mm is wrong for a 1 mm or 10 mm nozzle.
+- Bat origin is X0 Y0 (firmware bed edge). If the bat is shifted on the table, jog and re-zero before trusting the plater.
+- `pause.g` on the board homes the machine. Slicer pause emits `M25` instead. Do not copy `pause.g` into the profile.
+
+## Before you print
+
+1. Install the nozzle that matches the selected printer variant. Line width in the profile equals that nozzle.
+2. Slice a short vase, or for infill / several objects use **1.5mm Infill Retract** + **Clay Potterbot Retract**. Post-processing runs `validate_gcode.py` and **aborts export** if it sees heater commands, missing `E-500`, missing `M83`, or moves off the 381 × 360 bat.
+3. Read the first and last lines: start is `G28` only (no heat); end is `G0 Z10 E-500 F1000` then `G28`.
+4. Charge clay with the Duet Prime macro. Supervised first bead: home, first loop, spiral, end retract.
+5. Do not leave a tall job unattended until that check passes.
+
+## Rollback
+
+Use Cura with **3D Potter Standard** as before. Nothing in this repo is written to the printer’s firmware.
+
+## Tests
+
+```text
+python -m unittest discover -s Potterbot/tests -v
+```
+
+Regenerate the `.ini` files after editing `scripts/generate_bundle.py`:
+
+```text
+python Potterbot/scripts/generate_bundle.py
+```
