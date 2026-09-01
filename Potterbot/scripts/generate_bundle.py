@@ -9,7 +9,7 @@ VENDOR = ROOT / "vendor" / "Potterbot.ini"
 BUNDLE = ROOT / "profiles" / "Potterbot-9-bundle.ini"
 IDX = ROOT / "vendor" / "Potterbot.idx"
 
-CONFIG_VERSION = "0.1.2"
+CONFIG_VERSION = "0.1.3"
 NOZZLES = list(range(1, 11))
 BED_X = 381  # 15 in bat; firmware X travel is 420
 BED_Y = 360  # firmware Y travel (bat is 381)
@@ -98,7 +98,7 @@ def vendor_block() -> str:
         "variants = " + ";".join(str(n) for n in NOZZLES),
         "technology = FFF",
         "family = Potterbot",
-        "default_materials = Clay Potterbot;Clay Potterbot Retract",
+        "default_materials = Clay Potterbot",
         "",
         "[printer:*common*]",
         "printer_technology = FFF",
@@ -108,7 +108,7 @@ def vendor_block() -> str:
         "color_change_gcode =",
         'default_filament_profile = "Clay Potterbot"',
         "default_print_profile = 1.5mm Vase Hollow @Potterbot 5mm",
-        "deretract_speed = 16",
+        f"deretract_speed = {MID_RETRACT_SPEED}",
         "extruder_colour = #C4A574",
         "extruder_offset = 0x0",
         "extruder_clearance_height = 40",
@@ -136,17 +136,17 @@ def vendor_block() -> str:
         "machine_min_travel_rate = 0,0",
         "pause_print_gcode = M25",
         "remaining_times = 0",
-        "retract_before_travel = 2",
+        f"retract_before_travel = {MID_RETRACT_MIN_TRAVEL}",
         "retract_before_wipe = 0%",
-        "retract_layer_change = 0",
-        "retract_length = 0",
+        "retract_layer_change = 1",
+        f"retract_length = {MID_RETRACT}",
         "retract_length_toolchange = 0",
-        "retract_lift = 0",
+        f"retract_lift = {MID_RETRACT_LIFT}",
         "retract_lift_above = 0",
         "retract_lift_below = 0",
-        "retract_restart_extra = 0",
+        f"retract_restart_extra = {MID_RETRACT_RESTART_EXTRA}",
         "retract_restart_extra_toolchange = 0",
-        "retract_speed = 16",
+        f"retract_speed = {MID_RETRACT_SPEED}",
         "silent_mode = 0",
         "single_extruder_multi_material = 0",
         "thumbnails =",
@@ -233,7 +233,7 @@ def vendor_block() -> str:
             "max_print_speed = 85",
             "max_volumetric_speed = 0",
             "min_skirt_length = 0",
-            "notes = EXPERIMENTAL. Clay vase profiles for Potterbot 9. Layer height 1.5 mm from official 3D Potter Fine. Line width equals the installed nozzle (lab Cura notes). Speeds from official Cura (40 mm/s print, 80 travel, 20 bottom). No infill, no top. Retract is off during the print; end G-code pulls E-500.",
+            "notes = EXPERIMENTAL. Clay profiles for Potterbot 9. Layer height 1.5 mm from official 3D Potter Fine. Line width equals the installed nozzle. Speeds from official Cura (40 mm/s print, 80 travel, 20 bottom). Printer retract is E-80 at 17 mm/s with 5 mm Z-hop (official end feed, not FAQ 1000 mm/s). Spiral vase walls do not travel so they do not retract; skirt, bottoms, infill, and hops between objects do. End G-code still pulls E-500.",
             f"layer_height = {fmt_num(LAYER_HEIGHT)}",
             f"first_layer_height = {fmt_num(LAYER_HEIGHT)}",
             "only_retract_when_crossing_perimeters = 1",
@@ -314,15 +314,15 @@ def vendor_block() -> str:
                 "bottom_solid_layers = 3",
                 *shared,
                 "",
-                f"[print:{lh_s}mm Infill Retract @Potterbot {nozzle}mm]",
+                f"[print:{lh_s}mm Infill @Potterbot {nozzle}mm]",
                 "inherits = *common*",
-                f"alias = {lh_s}mm Infill Retract",
+                f"alias = {lh_s}mm Infill",
                 "spiral_vase = 0",
                 "fill_density = 15%",
                 "bottom_solid_layers = 3",
                 "avoid_crossing_perimeters = 1",
                 "infill_overlap = 15%",
-                'notes = EXPERIMENTAL. Infill / multi-object clay. Pair with filament Clay Potterbot Retract (80 mm @ 17 mm/s, 5 mm Z-hop). Not the 3D Potter FAQ 1000 mm/s retract. End G-code still pulls E-500. Raise infill % on the plater if you need it. Sequential printing (complete objects) is off so a tall pot cannot hit the nozzle; turn it on only if objects are short and spaced.',
+                "notes = EXPERIMENTAL. Infill / multi-object clay. Same printer retract as the vase profiles (E-80 at 17 mm/s, 5 mm Z-hop). Raise infill % on the plater if you need it. Sequential printing (complete objects) is off so a tall pot cannot hit the nozzle; turn it on only if objects are short and spaced.",
                 *shared,
                 "",
             ]
@@ -354,7 +354,7 @@ def vendor_block() -> str:
             "fan_below_layer_time = 0",
             "filament_colour = #55AAFF",
             "filament_max_volumetric_speed = 0",
-            'filament_notes = "EXPERIMENTAL. Official 3D Potter Clay material: 1.75 mm volumetric model, 0 C, no fan. Mid-print retract stays off. End G-code retracts E-500 to stop ooze. Prime clay from Duet macros if the ram is not already charged."',
+            'filament_notes = "EXPERIMENTAL. Official 3D Potter Clay material: 1.75 mm volumetric model, 0 C, no fan. Mid-print retract lives on the printer (E-80 at 17 mm/s, 5 mm hop). End G-code retracts E-500. Prime clay from Duet macros if the ram is not already charged."',
             "filament_type = FLEX",
             "first_layer_bed_temperature = 0",
             "first_layer_temperature = 0",
@@ -363,19 +363,6 @@ def vendor_block() -> str:
             "max_fan_speed = 0",
             "min_fan_speed = 0",
             "temperature = 0",
-            "",
-            "[filament:Clay Potterbot Retract]",
-            "inherits = Clay Potterbot",
-            "filament_colour = #C4783A",
-            f"filament_retract_length = {MID_RETRACT}",
-            f"filament_retract_speed = {MID_RETRACT_SPEED}",
-            f"filament_deretract_speed = {MID_RETRACT_SPEED}",
-            f"filament_retract_lift = {MID_RETRACT_LIFT}",
-            f"filament_retract_before_travel = {MID_RETRACT_MIN_TRAVEL}",
-            "filament_retract_layer_change = 1",
-            f"filament_retract_restart_extra = {MID_RETRACT_RESTART_EXTRA}",
-            "filament_wipe = 0",
-            f'filament_notes = "EXPERIMENTAL. Mid-print ram retract for infill and multiple objects. Pulls E-{MID_RETRACT} at {MID_RETRACT_SPEED} mm/s (official Cura end feed F1000 mm/min) and hops Z {MID_RETRACT_LIFT} mm. Extra prime {MID_RETRACT_RESTART_EXTRA} mm on restart. Does not use 3D Potter FAQ 1000 mm @ 1000 mm/s (stalls this Duet). If the motor complains, lower speed toward 10. If clay still drools, raise length toward 200 then 500. Pair with 1.5mm Infill Retract print profile. End G-code still retracts E-500."',
             "",
         ]
     )
@@ -391,8 +378,10 @@ def idx_text() -> str:
         "Bed is the 15x15 in bat clipped to Y travel. Not production-ready.\n"
         "0.1.1 Layer height is the documented 1.5 mm Fine value on every nozzle. "
         "Line width equals the installed nozzle (lab Cura notes). Stopped scaling layer height as 30% of nozzle.\n"
-        f"{CONFIG_VERSION} Add 1.5mm Infill Retract print profile and Clay Potterbot Retract filament "
+        "0.1.2 Add 1.5mm Infill Retract print profile and Clay Potterbot Retract filament "
         "(80 mm @ 17 mm/s, 5 mm Z-hop). Vase profiles stay unretracted. Not the FAQ 1000 mm/s recipe.\n"
+        f"{CONFIG_VERSION} Retract and 5 mm Z-hop are printer settings on every profile. "
+        "Dropped the separate retract filament. Infill print profile renamed 1.5mm Infill.\n"
     )
 
 

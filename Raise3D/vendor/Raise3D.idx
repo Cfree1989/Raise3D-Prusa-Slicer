@@ -36,3 +36,7 @@ min_slic3r_version = 2.9.0
 0.5.29 First-layer infill speed is XL 100 mm/s (was 40). The 0.5.26 slowdown was a policy extra after the 5000 accel bug; 100 mm/s is under Hyper FFF L1. First-layer walls stay 40 mm/s / 500 mm/s2.
 0.5.30 Repo is a multi-printer tree. Post-process scripts live at C:\\Repos\\Prusa-Slicer-Print-Profiles\\Raise3D\\scripts\\.
 0.5.31 Sequential clearance height 80 mm (operator Copperhead; ideaMaker stock Pro2 Plus HS gantry is 65). Radius still 45 (PrusaSlicer cylinder; ideaMaker uses a per-nozzle box).
+0.5.32 Sequential clearance radius 90 mm from operator Copperhead + fan measurements (back cable chain ~88; T0 right shroud 70). Cylinder still cannot match the per-nozzle box.
+0.5.33 Sequential Y from operator ruler: front 50 mm, body back 30 mm. Radius 70 mm (T0 right shroud). Height 80.
+0.5.34 Sequential clearance radius 85 mm (margin on the T0 front-right corner ~86).
+0.5.35 Sequential clearance radius 90 mm so the whole head (T0 front-right ~86) sits inside the cylinder.

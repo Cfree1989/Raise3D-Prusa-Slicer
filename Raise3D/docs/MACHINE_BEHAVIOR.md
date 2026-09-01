@@ -53,7 +53,7 @@ This profile is **experimental**. It is not production-ready.
 | This print bounding box | Left: X 101.505–203.495, Y 91.316–213.451, Z 0–43.100. Dual: X 69.430–183.760, Y 49.015–308.595, Z 0–60.900 (wipe tower exceeds 305 mm Y) | Confirmed |
 | Official Pro2 Plus volume | 305 × 305 × 605 mm | [Supported by Raise3D documentation](https://www.raise3d.com/pro2-series/) |
 | T1 keep-out | Leftmost ~25 mm (factory right-nozzle X offset in firmware; slicer XY offset 0) | Assumption requiring physical testing. PrusaSlicer 2.9.6 has no per-tool printable polygon. Bundle uses bed texture + default wipe tower X50 Y140 + validator. |
-| Sequential clearance | ideaMaker stock: gantry 65 mm; T0 box L37 R63 F45 B70; T1 box L62 R38 F45 B70. This bundle: `extruder_clearance_height` **80** (Copperhead), `extruder_clearance_radius` **45** (cylinder only) | Gantry: operator-stated. XY box: ideaMaker `RAISE3D Pro2 Plus - Hyper Speed.printer`. PrusaSlicer cannot take the per-nozzle rectangle. |
+| Sequential clearance | Operator ruler: T0 L42.5 R70 F50 B30; T1 L67.5 R45 F50 B30. Gantry **80**. This bundle: height **80**, radius **90** (whole head; T0 front-right ~86). ideaMaker stock was gantry 65; T0 37/63/45/70; T1 62/38/45/70 | Operator measurements. PrusaSlicer cylinder only. |
 | izumi 330 × 327.5 bed | Community Pro2 (not Plus), 2022 | Community-derived; **not used** |
 
 ## Special commands found

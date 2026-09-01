@@ -2,3 +2,4 @@ min_slic3r_version = 2.9.0
 0.1.0 Initial experimental Potterbot 9 clay bundle. Official Cura 3D Potter Standard start/end and 40/80 mm/s speeds. 1-10 mm nozzles. Vase Hollow (0 bottom) and Vase Bottom (3 bottoms). Bed is the 15x15 in bat clipped to Y travel. Not production-ready.
 0.1.1 Layer height is the documented 1.5 mm Fine value on every nozzle. Line width equals the installed nozzle (lab Cura notes). Stopped scaling layer height as 30% of nozzle.
 0.1.2 Add 1.5mm Infill Retract print profile and Clay Potterbot Retract filament (80 mm @ 17 mm/s, 5 mm Z-hop). Vase profiles stay unretracted. Not the FAQ 1000 mm/s recipe.
+0.1.3 Retract and 5 mm Z-hop are printer settings on every profile. Dropped the separate retract filament. Infill print profile renamed 1.5mm Infill.

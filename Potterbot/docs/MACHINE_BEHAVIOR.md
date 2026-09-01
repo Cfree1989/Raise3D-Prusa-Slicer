@@ -38,10 +38,7 @@ Official Cura **3D Potter Standard** stores `retraction_amount = 1000` / `retrac
 
 The [3D Potter FAQ](https://3dpotter.com/faq/) mid-print recipe (1000 mm at 1000 mm/s) exceeds `config.g` `M203 E22000` (367 mm/s) and is what stalled the ram motor in Cura.
 
-This bundle:
-
-- **Clay Potterbot** + vase prints: mid-print retract off. End G-code `G0 Z10 E-500 F1000` (F is mm/min ≈ 17 mm/s).
-- **Clay Potterbot Retract** + **Infill Retract**: relative `E-80` at 17 mm/s, Z-hop 5 mm (FAQ lift, not FAQ speed), extra prime 10 mm, only if travel ≥ 15 mm. Experimental.
+This bundle puts retract on the **printer** (every print profile): relative `E-80` at 17 mm/s, Z-hop 5 mm (FAQ lift, not FAQ speed), extra prime 10 mm, only if travel ≥ 15 mm. Spiral vase walls do not travel, so they do not fire it. Skirt, bottoms, infill, and hops between objects do. End G-code is still `G0 Z10 E-500 F1000`. Experimental.
 
 ## Bed vs bat
 
