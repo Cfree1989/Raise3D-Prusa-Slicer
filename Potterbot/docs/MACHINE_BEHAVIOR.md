@@ -30,7 +30,9 @@ From `reference/cura/3D Potter Standard.3mf` (Cura machine) and the Cura 5.12 jo
 
 `no_bottom__layers.gcode` has `bottom_layers = 0`. `Bottom_Layers.gcode` has `bottom_layers = 3`. Both spiralize after the base.
 
-Lab `Instructions.txt` says to match **line width** to the nozzle on the machine. It does not scale layer height with the tip. 3D Potter does not publish a layer-height-to-nozzle percentage. This bundle keeps **1.5 mm layer** on 2–10 mm nozzles and sets line width equal to the selected nozzle. The 1 mm tip is **0.8 mm layer** because PrusaSlicer rejects `extrusion_width <= layer_height` and also rejects first-layer height greater than nozzle diameter. Print profile names omit the layer height. Sparse infill is **grid**, solid bottoms are **concentric** with **Arachne** (classic concentric and Archimedean chords leave growing gaps on wide tips), and solid tops are **rectilinear**. Infill overlap is **15%** so bottoms meet the wall.
+Lab `Instructions.txt` says to match **line width** to the nozzle on the machine. It does not scale layer height with the tip. 3D Potter does not publish a layer-height-to-nozzle percentage. This bundle keeps **1.5 mm layer** on 2–10 mm nozzles and sets line width equal to the selected nozzle. The 1 mm tip is **0.8 mm layer** because PrusaSlicer rejects `extrusion_width <= layer_height` and also rejects first-layer height greater than nozzle diameter. Print profile names omit the layer height. Sparse infill is **grid**, solid bottoms are **Archimedean chords**, and solid tops are **rectilinear**. Infill overlap is **15%** so bottoms meet the wall.
+
+PrusaSlicer Preview draws each move as a rounder tube than the real 1.5 mm × nozzle ribbon. On a 9 mm tip the G-code pitch is the flow spacing (~8.7 mm) with **WIDTH:9** and a 0.3 mm overlap; the dark grid between rings is the viewer, not missing clay. Confirm from the `;WIDTH:` lines and centerline spacing, or a short skirt on the machine. Do not keep widening line width to make Preview look solid — that would over-extrude.
 
 ## Retraction
 

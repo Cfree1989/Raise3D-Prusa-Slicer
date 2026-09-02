@@ -9,7 +9,7 @@ VENDOR = ROOT / "vendor" / "Potterbot.ini"
 BUNDLE = ROOT / "profiles" / "Potterbot-9-bundle.ini"
 IDX = ROOT / "vendor" / "Potterbot.idx"
 
-CONFIG_VERSION = "0.1.10"
+CONFIG_VERSION = "0.1.11"
 NOZZLES = list(range(1, 11))
 BED_X = 381  # 15 in bat; firmware X travel is 420
 BED_Y = 360  # firmware Y travel (bat is 381)
@@ -206,7 +206,7 @@ def vendor_block() -> str:
         [
             "[print:*common*]",
             "avoid_crossing_perimeters = 0",
-            "bottom_fill_pattern = concentric",
+            "bottom_fill_pattern = archimedeanchords",
             "bottom_solid_min_thickness = 0",
             "bridge_acceleration = 1000",
             "bridge_flow_ratio = 1",
@@ -249,7 +249,7 @@ def vendor_block() -> str:
             "max_print_speed = 85",
             "max_volumetric_speed = 0",
             "min_skirt_length = 0",
-            "notes = EXPERIMENTAL. Clay profiles for Potterbot 9. Layer height 1.5 mm from official 3D Potter Fine except the 1 mm nozzle (0.8 mm so extrusion width stays above layer height). Line width equals the installed nozzle. Bottoms are concentric with the Arachne generator (classic concentric and Archimedean chords leave growing gaps on wide clay tips); tops are rectilinear; sparse infill is grid. 15% infill overlap so bottoms meet the wall. Speeds from official Cura (40 mm/s print, 80 travel, 20 bottom). Printer retract is E-80 at 17 mm/s with 5 mm Z-hop (official end feed, not FAQ 1000 mm/s). Spiral vase walls do not travel so they do not retract; skirt, bottoms, infill, and hops between objects do. End G-code still pulls E-500.",
+            "notes = EXPERIMENTAL. Clay profiles for Potterbot 9. Layer height 1.5 mm from official 3D Potter Fine except the 1 mm nozzle (0.8 mm so extrusion width stays above layer height). Line width equals the installed nozzle. Bottoms are Archimedean chords; tops are rectilinear; sparse infill is grid. 15% infill overlap so bottoms meet the wall. PrusaSlicer Preview draws flat clay beads as rounder tubes — the dark grid is the viewer, not missing clay. Speeds from official Cura (40 mm/s print, 80 travel, 20 bottom). Printer retract is E-80 at 17 mm/s with 5 mm Z-hop (official end feed, not FAQ 1000 mm/s). Spiral vase walls do not travel so they do not retract; skirt, bottoms, infill, and hops between objects do. End G-code still pulls E-500.",
             f"layer_height = {fmt_num(LAYER_HEIGHT)}",
             f"first_layer_height = {fmt_num(LAYER_HEIGHT)}",
             "only_retract_when_crossing_perimeters = 1",
@@ -348,7 +348,7 @@ def vendor_block() -> str:
                 "top_solid_layers = 3",
                 "avoid_crossing_perimeters = 1",
                 "infill_overlap = 15%",
-                "notes = EXPERIMENTAL. Infill / multi-object clay. 15% grid infill, 3 concentric bottoms, 3 rectilinear tops. Same printer retract as the vase profiles (E-80 at 17 mm/s, 5 mm Z-hop). Raise infill % on the plater if you need it. Sequential printing (complete objects) is off so a tall pot cannot hit the nozzle; turn it on only if objects are short and spaced.",
+                "notes = EXPERIMENTAL. Infill / multi-object clay. 15% grid infill, 3 Archimedean-chord bottoms, 3 rectilinear tops. Same printer retract as the vase profiles (E-80 at 17 mm/s, 5 mm Z-hop). Raise infill % on the plater if you need it. Sequential printing (complete objects) is off so a tall pot cannot hit the nozzle; turn it on only if objects are short and spaced.",
                 *shared,
                 "",
             ]
@@ -414,8 +414,11 @@ def idx_text() -> str:
         "0.1.6 Printer presets are named 1mm Nozzle through 10mm Nozzle.\n"
         "0.1.7 Use repo_id non-prusa-fff so the Configuration Wizard can list 3D Potter under Other Vendors.\n"
         "0.1.8 Infill print profile has 3 rectilinear top layers to match the 3 bottoms.\n"
-        f"{CONFIG_VERSION} 1 mm nozzle layer is 0.8 mm (width must be greater than height). "
+        "0.1.9 Bottoms are concentric again (Archimedean chords gap more as the spiral grows on wide tips). "
+        "1 mm nozzle layer height is 1 mm so PrusaSlicer will slice.\n"
+        "0.1.10 1 mm nozzle layer is 0.8 mm (width must be greater than height). "
         "Arachne + 15% infill overlap so concentric bottoms do not open up on wide tips.\n"
+        f"{CONFIG_VERSION} Bottoms are Archimedean chords again. The Preview grid on wide tips is the viewer, not that fill pattern.\n"
     )
 
 

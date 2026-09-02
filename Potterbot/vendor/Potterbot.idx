@@ -8,4 +8,6 @@ min_slic3r_version = 2.9.0
 0.1.6 Printer presets are named 1mm Nozzle through 10mm Nozzle.
 0.1.7 Use repo_id non-prusa-fff so the Configuration Wizard can list 3D Potter under Other Vendors.
 0.1.8 Infill print profile has 3 rectilinear top layers to match the 3 bottoms.
+0.1.9 Bottoms are concentric again (Archimedean chords gap more as the spiral grows on wide tips). 1 mm nozzle layer height is 1 mm so PrusaSlicer will slice.
 0.1.10 1 mm nozzle layer is 0.8 mm (width must be greater than height). Arachne + 15% infill overlap so concentric bottoms do not open up on wide tips.
+0.1.11 Bottoms are Archimedean chords again. The Preview grid on wide tips is the viewer, not that fill pattern.

@@ -31,7 +31,7 @@ class VendorStructureTests(unittest.TestCase):
     def test_vendor_and_model(self) -> None:
         self.assertEqual(self.ini["vendor"]["name"], "3D Potter (experimental)")
         self.assertEqual(self.ini["vendor"]["repo_id"], "non-prusa-fff")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.1.10")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.1.11")
         self.assertEqual(self.ini["printer_model:POTTERBOT9"]["variants"], "1;2;3;4;5;6;7;8;9;10")
         self.assertEqual(self.ini["printer_model:POTTERBOT9"]["default_materials"], "Clay Potterbot")
 
@@ -99,7 +99,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(p["first_layer_speed"], "40")
         self.assertEqual(p["fill_density"], "0%")
         self.assertEqual(p["fill_pattern"], "grid")
-        self.assertEqual(p["bottom_fill_pattern"], "concentric")
+        self.assertEqual(p["bottom_fill_pattern"], "archimedeanchords")
         self.assertEqual(p["top_fill_pattern"], "rectilinear")
         self.assertEqual(p["perimeter_generator"], "arachne")
         self.assertEqual(p["infill_overlap"], "15%")
