@@ -5,7 +5,8 @@
 3. Insert mid-print `M104 T{next}` before each swap `M109` (ideaMaker preheats while the
    other nozzle is still printing). `next_extruder` exists only in tool-change G-code.
 4. Convert PrusaSlicer `M73 P… R…` (percent / minutes) to ideaMaker
-   `;PRINTING_TIME:` / `;REMAINING_TIME:` (seconds) and append `;Print Time:` /
+   `;PRINTING_TIME:` / `;REMAINING_TIME:` (seconds), synthesize `;LAYER:0` after
+   `M1001` when PrusaSlicer omitted it, and append `;Print Time:` /
    `;Material#N Used:` so RaiseTouch can show progress, remaining time, and file stats.
 
 Works as a CLI (`python scripts/ensure_m99123_first.py file.gcode`) and as a
@@ -28,6 +29,12 @@ M73 = re.compile(r"^M73\b(?P<body>.*)$", re.I)
 LAYER_NUM = re.compile(r"^;LAYER:(\d+)\s*$")
 HEIGHT_LINE = re.compile(r"^;HEIGHT:(-?\d+(?:\.\d+)?)\s*$")
 Z_LINE = re.compile(r"^;Z:(-?\d+(?:\.\d+)?)\s*$")
+BBOX_LINE = re.compile(
+    r"^;Bounding Box:\s+"
+    r"(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+"
+    r"(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+"
+    r"(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$"
+)
 MOVE_CMD = re.compile(r"^G([0123])\b", re.I)
 AXIS_XY = re.compile(r"\b([XY])(-?\d+(?:\.\d+)?)", re.I)
 EST_TIME = re.compile(r"^;\s*estimated printing time \(normal mode\)\s*=\s*(.+)$", re.I)
@@ -248,6 +255,44 @@ def _clock_from_m73(
     return printed, total - printed
 
 
+def _first_layer_change_zh(lines: list[str]) -> tuple[str | None, str | None]:
+    """First `;Z:` / `;HEIGHT:` after M1001 (PrusaSlicer `;LAYER_CHANGE` block)."""
+    after_m1001 = False
+    z_line = None
+    h_line = None
+    for line in lines:
+        if _code(line).upper() == "M1001":
+            after_m1001 = True
+            continue
+        if not after_m1001:
+            continue
+        stripped = line.strip()
+        if z_line is None and Z_LINE.match(stripped):
+            z_line = stripped
+        if h_line is None and HEIGHT_LINE.match(stripped):
+            h_line = stripped
+        if z_line is not None and h_line is not None:
+            break
+    return z_line, h_line
+
+
+def _ensure_layer0_after_m1001(lines: list[str], total: int) -> tuple[list[str], int]:
+    """PrusaSlicer skips before_layer_gcode on the first layer — synthesize ideaMaker LAYER:0."""
+    if any(_layer_num(line) == 0 for line in lines):
+        return lines, 0
+    try:
+        m1001 = next(i for i, line in enumerate(lines) if _code(line).upper() == "M1001")
+    except StopIteration:
+        return lines, 0
+    z_line, h_line = _first_layer_change_zh(lines)
+    block = [";PRINTING_TIME: 0", f";REMAINING_TIME: {total}", ";LAYER:0"]
+    if z_line:
+        block.append(z_line)
+    if h_line:
+        block.append(h_line)
+    return lines[: m1001 + 1] + block + lines[m1001 + 1 :], 1
+
+
 def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
     """Write ideaMaker time comments RaiseTouch reads at `;LAYER:N`.
 
@@ -259,6 +304,9 @@ def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
     `;HEIGHT:` between the clock and `;LAYER:`, and RaiseTouch ignores them.
     Do not put `HEIGHT` in custom G-code (PrusaSlicer reserved keyword). Copy the
     slicer's own `;HEIGHT:` after `;LAYER:N` / `;Z:` in post-process instead.
+    PrusaSlicer skips Before layer change G-code on the first layer, so there is
+    no `;LAYER:0` to hang the clock on. Synthesize that ideaMaker block after
+    `M1001` (times plus the first `;LAYER_CHANGE` `;Z:` / `;HEIGHT:`).
     File-picker grams/price/thumbnail still come from ideaMaker `.data`.
     """
     has_layer_num = any(_layer_num(line) is not None for line in lines)
@@ -340,17 +388,8 @@ def emit_raisetouch_times(lines: list[str]) -> tuple[list[str], int]:
         out = out[: firmware + 1] + block + out[firmware + 1 :]
         changed += 1
 
-    if not has_layer_num:
-        try:
-            m1001 = next(i for i, line in enumerate(out) if _code(line).upper() == "M1001")
-        except StopIteration:
-            m1001 = None
-        if m1001 is not None:
-            window = out[m1001 + 1 : m1001 + 16]
-            if not any(line.startswith(";REMAINING_TIME:") for line in window):
-                block = [";PRINTING_TIME: 0", f";REMAINING_TIME: {total}"]
-                out = out[: m1001 + 1] + block + out[m1001 + 1 :]
-                changed += 1
+    out, n_layer0 = _ensure_layer0_after_m1001(out, total)
+    changed += n_layer0
 
     if not any(line.startswith(";Print Time:") for line in out[-40:]):
         out.extend(_material_comments(total, mm, cost))
@@ -463,10 +502,23 @@ def print_aabb_xy(lines: list[str]) -> tuple[float, float, float, float] | None:
     return xmin, ymin, xmax, ymax
 
 
+def _format_bounding_box(
+    xmin: float, ymin: float, xmax: float, ymax: float, zmax: float
+) -> str:
+    """ideaMaker header: xmin xmax ymin ymax zmin zmax."""
+    return f";Bounding Box: {xmin:.3f} {xmax:.3f} {ymin:.3f} {ymax:.3f} 0.000 {zmax:.3f}"
+
+
+def _ideamaker_bbox_ok(line: str) -> bool:
+    match = BBOX_LINE.match(line.strip())
+    if not match:
+        return False
+    xmin, xmax, ymin, ymax = (float(match.group(i)) for i in range(1, 5))
+    return xmax >= xmin and ymax >= ymin
+
+
 def inject_bounding_box(lines: list[str]) -> tuple[list[str], int]:
     """ideaMaker header AABB. `{max_layer_z}` is not valid in start G-code."""
-    if any(line.startswith(";Bounding Box:") for line in lines[:80]):
-        return lines, 0
     zmax = max_layer_z_from_gcode(lines)
     if zmax is None:
         return lines, 0
@@ -478,9 +530,17 @@ def inject_bounding_box(lines: list[str]) -> tuple[list[str], int]:
         xmin, ymin, xmax, ymax = 0.0, 0.0, 305.0, 305.0
     else:
         xmin, ymin, xmax, ymax = xy
-    box = (
-        f";Bounding Box: {xmin:.3f} {ymin:.3f} {xmax:.3f} {ymax:.3f} 0.000 {zmax:.3f}"
+    box = _format_bounding_box(xmin, ymin, xmax, ymax, zmax)
+    existing_i = next(
+        (i for i, line in enumerate(lines[:80]) if line.startswith(";Bounding Box:")),
+        None,
     )
+    if existing_i is not None:
+        if _ideamaker_bbox_ok(lines[existing_i]):
+            return lines, 0
+        out = list(lines)
+        out[existing_i] = box
+        return out, 1
     return lines[: firmware + 1] + [box] + lines[firmware + 1 :], 1
 
 

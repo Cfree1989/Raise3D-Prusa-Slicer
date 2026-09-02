@@ -261,9 +261,52 @@ class GcodeSafetyTests(unittest.TestCase):
         src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
         out, n = inject_bounding_box(src)
         self.assertEqual(n, 1)
-        self.assertIn(";Bounding Box: 100.000 100.000 120.000 100.000 0.000 0.300", out)
+        self.assertIn(";Bounding Box: 100.000 120.000 100.000 100.000 0.000 0.300", out)
         out2, n2 = inject_bounding_box(out)
         self.assertEqual(n2, 0)
+
+    def test_inject_bounding_box_rewrites_xmin_ymin_order(self) -> None:
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
+        fw = next(i for i, line in enumerate(src) if line.startswith(";Firmware:"))
+        wrong = (
+            src[: fw + 1]
+            + [";Bounding Box: 97.278 60.497 206.878 195.457 0.000 41.900"]
+            + src[fw + 1 :]
+        )
+        out, n = inject_bounding_box(wrong)
+        self.assertEqual(n, 1)
+        self.assertIn(";Bounding Box: 100.000 120.000 100.000 100.000 0.000 0.300", out)
+        self.assertNotIn(";Bounding Box: 97.278 60.497 206.878 195.457 0.000 41.900", out)
+
+    def test_emit_raisetouch_times_synthesizes_layer0_after_m1001(self) -> None:
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
+        i0 = src.index(";LAYER:0")
+        padded = (
+            src[:i0]
+            + [";LAYER_CHANGE", ";Z:0.3", ";HEIGHT:0.3", ";LAYER:1"]
+            + src[i0 + 2 :]
+            + ["; estimated printing time (normal mode) = 3h 1m 41s"]
+        )
+        self.assertFalse(any(line.strip() == ";LAYER:0" for line in padded))
+        out, n = emit_raisetouch_times(padded)
+        self.assertGreater(n, 0)
+        m1001 = next(i for i, line in enumerate(out) if line.strip() == "M1001")
+        self.assertEqual(
+            out[m1001 + 1 : m1001 + 6],
+            [
+                ";PRINTING_TIME: 0",
+                ";REMAINING_TIME: 10901",
+                ";LAYER:0",
+                ";Z:0.3",
+                ";HEIGHT:0.3",
+            ],
+        )
+        i1 = out.index(";LAYER:1")
+        self.assertTrue(out[i1 - 2].startswith(";PRINTING_TIME:"))
+        self.assertTrue(out[i1 - 1].startswith(";REMAINING_TIME:"))
+        out2, n2 = emit_raisetouch_times(out)
+        self.assertEqual(n2, 0)
+        self.assertEqual(out2.count(";LAYER:0"), 1)
 
     def test_rewrite_is_idempotent_after_raisetouch_times(self) -> None:
         import tempfile
