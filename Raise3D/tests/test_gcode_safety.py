@@ -18,6 +18,7 @@ from ensure_m99123_first import (  # noqa: E402
     insert_next_tool_preheat,
     parse_hms,
     rewrite,
+    xy_then_z_after_purge,
 )
 
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -327,6 +328,74 @@ class GcodeSafetyTests(unittest.TestCase):
             self.assertEqual(rewrite(path), "already")
             self.assertEqual(path.read_text(encoding="utf-8"), first)
             self.assertEqual(validate(path), [], msg="\n".join(validate(path)))
+
+    def test_xy_then_z_after_purge_matches_ideamaker(self) -> None:
+        src = [
+            "M99123 hdr",
+            ";Firmware: Klipper",
+            "G1 Z15.0 F300",
+            "G1 F140 E29",
+            "M1001",
+            "G1 E-1.5 F2400",
+            "G1 Z.3 F300",
+            "G1 X140.549 Y181.524 F9000",
+            "G1 Z.3 F300",
+            "G1 E1.5 F1500",
+            "G1 X141 E0.01",
+            "M1002",
+        ]
+        out, n = xy_then_z_after_purge(src)
+        self.assertEqual(n, 1)
+        m1001 = out.index("M1001")
+        xy_i = next(i for i, line in enumerate(out) if "X140.549" in line)
+        z_i = next(i for i, line in enumerate(out) if line.startswith("G0 F300 Z"))
+        self.assertLess(m1001, xy_i)
+        self.assertLess(xy_i, z_i)
+        self.assertEqual(out[xy_i], "G1 X140.549 Y181.524 F9000")
+        self.assertEqual(out[z_i], "G0 F300 Z.3")
+        self.assertEqual(out.count("G1 Z.3 F300"), 0)
+        out2, n2 = xy_then_z_after_purge(out)
+        self.assertEqual(n2, 0)
+        self.assertEqual(out2, out)
+
+    def test_xy_then_z_splits_combined_xyz(self) -> None:
+        src = (FIXTURES / "dual_start_end.gcode").read_text(encoding="utf-8").splitlines()
+        out, n = xy_then_z_after_purge(src)
+        self.assertEqual(n, 1)
+        self.assertNotIn("G1 X100 Y100 Z0.3 F900", out)
+        xy_i = next(i for i, line in enumerate(out) if "X100" in line and "Y100" in line)
+        z_i = next(i for i, line in enumerate(out) if line.startswith("G0 F300 Z"))
+        self.assertLess(xy_i, z_i)
+        self.assertIn("X100", out[xy_i])
+        self.assertIn("Y100", out[xy_i])
+        self.assertNotIn("Z", out[xy_i].split(";", 1)[0])
+        out2, n2 = xy_then_z_after_purge(out)
+        self.assertEqual(n2, 0)
+
+    def test_xy_then_z_leaves_ideamaker_order(self) -> None:
+        src = (FIXTURES / "ideamaker_left_start_end.gcode").read_text(encoding="utf-8").splitlines()
+        out, n = xy_then_z_after_purge(src)
+        self.assertEqual(n, 0)
+        self.assertEqual(out, src)
+
+    def test_xy_then_z_on_prusaslicer_reference(self) -> None:
+        path = (
+            ROOT
+            / "reference"
+            / "prusaslicer"
+            / "Raise3DTest_0.4n_0.2mm_PLA_PRO2PLUS_HS_DUAL_3h2m.gcode"
+        )
+        src = path.read_text(encoding="utf-8").splitlines()
+        out, n = xy_then_z_after_purge(src)
+        self.assertEqual(n, 1)
+        m1001 = next(i for i, line in enumerate(out) if line.strip() == "M1001")
+        xy_i = next(
+            i
+            for i, line in enumerate(out[m1001:], m1001)
+            if line.startswith("G") and "X" in line and "Y" in line and "E" not in line.split(";", 1)[0]
+        )
+        z_i = next(i for i, line in enumerate(out[m1001:], m1001) if line.startswith("G0 F300 Z"))
+        self.assertLess(xy_i, z_i)
 
 
 if __name__ == "__main__":

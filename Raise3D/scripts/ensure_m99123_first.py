@@ -8,6 +8,8 @@
    `;PRINTING_TIME:` / `;REMAINING_TIME:` (seconds), synthesize `;LAYER:0` after
    `M1001` when PrusaSlicer omitted it, and append `;Print Time:` /
    `;Material#N Used:` so RaiseTouch can show progress, remaining time, and file stats.
+5. After the Z15 purge, travel to the first print XY at purge height, then drop Z
+   (ideaMaker). PrusaSlicer emits `G1 Z.3` at the purge XY first.
 
 Works as a CLI (`python scripts/ensure_m99123_first.py file.gcode`) and as a
 PrusaSlicer post-processing script (G-code path is the last argument).
@@ -37,6 +39,11 @@ BBOX_LINE = re.compile(
 )
 MOVE_CMD = re.compile(r"^G([0123])\b", re.I)
 AXIS_XY = re.compile(r"\b([XY])(-?\d+(?:\.\d+)?)", re.I)
+# PrusaSlicer first-layer Z is often Z.3 (no leading zero).
+NUM = r"-?(?:\d+\.?\d*|\.\d+)"
+AXIS_TOKEN = re.compile(rf"^([XYZEF])({NUM})$", re.I)
+Z_DROP_MAX = 2.0
+Z_DROP_FEED = "F300"
 EST_TIME = re.compile(r"^;\s*estimated printing time \(normal mode\)\s*=\s*(.+)$", re.I)
 FILAMENT_MM = re.compile(r"^;\s*filament used \[mm\]\s*=\s*(.+)$", re.I)
 FILAMENT_COST = re.compile(r"^;\s*filament cost\s*=\s*(.+)$", re.I)
@@ -47,6 +54,115 @@ MIN_PREHEAT_GAP = 50
 
 def _code(line: str) -> str:
     return line.split(";", 1)[0].strip()
+
+
+def _axis_tokens(code: str) -> dict[str, str]:
+    """Map axis letter to the original token (`Z.3`, `X140.549`)."""
+    found: dict[str, str] = {}
+    for tok in code.split():
+        match = AXIS_TOKEN.match(tok)
+        if match:
+            found[match.group(1).upper()] = tok
+    return found
+
+
+def _is_travel(code: str) -> bool:
+    return bool(MOVE_CMD.match(code)) and "E" not in _axis_tokens(code)
+
+
+def _z_value(code: str) -> float | None:
+    tok = _axis_tokens(code).get("Z")
+    if tok is None:
+        return None
+    match = AXIS_TOKEN.match(tok)
+    return float(match.group(2)) if match else None
+
+
+def _strip_axes(line: str, drop: set[str]) -> str:
+    code, sep, comment = line.partition(";")
+    kept = []
+    for tok in code.split():
+        match = AXIS_TOKEN.match(tok)
+        if match and match.group(1).upper() in drop:
+            continue
+        kept.append(tok)
+    out = " ".join(kept)
+    if sep:
+        out += f";{comment}"
+    return out
+
+
+def _z_drop_line(z_token: str) -> str:
+    """ideaMaker first approach: `G0 F300 Z0.300` after XY at purge height."""
+    return f"G0 {Z_DROP_FEED} {z_token}"
+
+
+def xy_then_z_after_purge(lines: list[str]) -> tuple[list[str], int]:
+    """ideaMaker: purge at Z15, travel to print-start XY, then drop Z.
+
+    PrusaSlicer 2.9.6 after M1001 emits retract, `G1 Z.3`, then `G1 X… Y…`, so Z
+    drops on the purge. Reorder (or split a combined XYZ travel) so XY happens
+    at purge height. Later layer hops are left alone.
+    """
+    try:
+        m1001 = next(i for i, line in enumerate(lines) if _code(line).upper() == "M1001")
+        m1002 = next(i for i, line in enumerate(lines) if _code(line).upper() == "M1002")
+    except StopIteration:
+        return lines, 0
+
+    z_i: int | None = None
+    xy_i: int | None = None
+    xyz_i: int | None = None
+    for i in range(m1001 + 1, m1002):
+        code = _code(lines[i])
+        if not MOVE_CMD.match(code):
+            continue
+        axes = _axis_tokens(code)
+        if "E" in axes:
+            if "X" in axes or "Y" in axes:
+                break
+            continue
+        has_xy = "X" in axes or "Y" in axes
+        z = _z_value(code)
+        has_drop = z is not None and z < Z_DROP_MAX
+        if has_xy and has_drop:
+            xyz_i = i
+            break
+        if z_i is None and has_drop and not has_xy:
+            z_i = i
+        if xy_i is None and has_xy and z is None:
+            xy_i = i
+        if z_i is not None and xy_i is not None:
+            break
+
+    out = list(lines)
+    if xyz_i is not None:
+        z_tok = _axis_tokens(_code(out[xyz_i]))["Z"]
+        out[xyz_i : xyz_i + 1] = [_strip_axes(out[xyz_i], {"Z"}), _z_drop_line(z_tok)]
+        return out, 1
+    if z_i is None or xy_i is None or xy_i < z_i:
+        return lines, 0
+
+    z_tok = _axis_tokens(_code(out[z_i]))["Z"]
+    xy_line = out[xy_i]
+    rest_after_xy = out[xy_i + 1 :]
+    between = out[z_i + 1 : xy_i]
+    out = out[:z_i] + [xy_line] + between + [_z_drop_line(z_tok)] + rest_after_xy
+    z_now = z_i + 1 + len(between)
+    nxt = z_now + 1
+    if nxt < len(out):
+        nxt_code = _code(out[nxt])
+        nxt_z = _z_value(nxt_code)
+        nxt_axes = _axis_tokens(nxt_code)
+        if (
+            _is_travel(nxt_code)
+            and nxt_z is not None
+            and nxt_z < Z_DROP_MAX
+            and "X" not in nxt_axes
+            and "Y" not in nxt_axes
+        ):
+            out.pop(nxt)
+    return out, 1
 
 
 def insert_next_tool_preheat(lines: list[str]) -> tuple[list[str], int]:
@@ -545,7 +661,7 @@ def inject_bounding_box(lines: list[str]) -> tuple[list[str], int]:
 
 
 def rewrite(path: Path) -> str:
-    """Move M99123 to line 1, convert M204, insert next-tool preheat.
+    """Move M99123 to line 1, convert M204, insert next-tool preheat, XY then Z.
 
     Returns 'moved', 'already', or 'missing' (M99123 status).
     """
@@ -558,13 +674,14 @@ def rewrite(path: Path) -> str:
     lines, n_times = emit_raisetouch_times(lines)
     lines, n_height = copy_slicer_height_after_layer(lines)
     lines, n_bbox = inject_bounding_box(lines)
+    lines, n_xy_z = xy_then_z_after_purge(lines)
     idx = next((i for i, line in enumerate(lines) if line.startswith("M99123")), None)
     moved = False
     if idx is not None and idx != 0:
         header = lines.pop(idx)
         lines.insert(0, header)
         moved = True
-    if moved or n_m204 or n_preheat or n_times or n_height or n_bbox:
+    if moved or n_m204 or n_preheat or n_times or n_height or n_bbox or n_xy_z:
         path.write_bytes((newline.decode("ascii").join(lines) + newline.decode("ascii")).encode("utf-8"))
     if idx is None:
         return "missing"

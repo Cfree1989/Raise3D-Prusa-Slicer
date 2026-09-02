@@ -27,11 +27,12 @@ This mapping is **experimental**. Physical Stage 2–7 tests are still required.
 | `;Firmware: Klipper` | Same | Copied | Confirmed in this file. |
 | `;Bounding Box:…` | `ensure_m99123_first.py` writes object AABB after `;Firmware:`: XY from G0/G1 after `M1001`, Z from max `;Z:`. Not `{max_layer_z}` in start G-code. Rewrites a prior box when it is not valid ideaMaker order (`xmax < xmin` or `ymax < ymin`). | Copied dialect (post-export) | `{max_layer_z}` is not valid in start G-code ([placeholders](https://help.prusa3d.com/article/list-of-placeholders_205643)). ideaMaker writes `xmin xmax ymin ymax zmin zmax` of the print (not the full bed). |
 | `M221 T0 S94.00` | `M221 T0 S{extrusion_multiplier[0]*100}` with PLA `extrusion_multiplier = 0.94` | Copied | ideaMaker `[Raise3D] PLA` used 94%. Start G-code follows the filament multiplier. End G-code still resets `M221 … S100`. |
-| `M140 S60` / `M104 T0 S230` / `M109 T0 S230` / `T0` / `M190 S60` | Same commands with `{first_layer_bed_temperature[0]}` and `{first_layer_temperature[0]}` (PLA defaults **230 / 230 / 60**) | Copied | Dual start still heats T0 and T1 when `is_extruder_used`. Left-only skips T1. Right-only heats **T1 only** then `T1` before `M190`/`G28` (`RightonlyExtruder.gcode`). |
+| `M140 S60` / `M104 T0 S230` / `M109 T0 S230` / `T0` / `M190 S60` | Same commands with `{first_layer_bed_temperature[0]}` and `{first_layer_temperature[0]}` (PLA defaults **215 first / 225 later / 60 bed**) | Copied | Dual start still heats T0 and T1 when `is_extruder_used`. Left-only skips T1. Right-only heats **T1 only** then `T1` before `M190`/`G28` (`RightonlyExtruder.gcode`). ideaMaker files used 230 °C. |
 | `G21` `G90` `M82` `M107` | `G21` `G90` `M83` `M107` | Changed | ideaMaker uses absolute E. PrusaSlicer wipe tower requires relative E, so the Dual profile emits `M83`. |
 | `G28 X0 Y0` then `G28 Z0` | Same | Copied | Do not replace with `G28` or add `G29`. Left/dual home on `T0`. Right-only homes on `T1`. |
 | `G1 Z15.0 F300` | Same | Copied | Clearance before purge. |
-| `G92 E0` / `G1 F140 E29` / `G1 X20 Y0 F140 E30` / `G92 E0` | Same blob; wipe is `G1 X80 Y0 F140 E1` (relative). After tool select, all modes `G1 X80 Y0 F9000` at Z15 | Changed XY | ideaMaker wipes to X20 then stays at Z15 until the part. On this machine X20 is still under the part-cooling fan when Z drops; X80 clears the blob. Dual ideaMaker has no XY wipe (blob at home); the shared X80 travel is required there too. |
+| `G92 E0` / `G1 F140 E29` / `G1 X20 Y0 F140 E30` / `G92 E0` | Same blob; wipe is `G1 X80 Y0 F140 E1` (relative). No extra `G1 X80 Y0 F9000` before `M1001`. | Changed XY | ideaMaker wipes to X20 then **stays at Z15**, travels to print-start XY, then drops Z. Stage 3: X20 is still under the fan if Z drops there, so the wipe is X80. Dual ideaMaker has no XY wipe (blob at home). |
+| First approach after `M1001` | `G0 F9000 X… Y…` then `G0 F300 Z0.300` | Copied dialect | ideaMaker never drops Z at the purge. PrusaSlicer emits `G1 Z.3` then `G1 X… Y…`. `ensure_m99123_first.py` reorders (or splits combined XYZ) so XY happens at Z15, then Z. |
 | `G1 F9000.0` / `M117 Printing...` / `M1001` | Same | Copied | Travel feed + start marker. |
 | `SET_VELOCITY_LIMIT ACCEL=5000.00` and `SQUARE_CORNER_VELOCITY=10.00` | Same after `M1001`. Print profile uses print accel **2000**, travel **5000** (including first layer and short travel). `ensure_m99123_first.py` rewrites PrusaSlicer `M204 S` to `SET_VELOCITY_LIMIT ACCEL=….00` | Copied dialect + ideaMaker 2000/5000 | PrusaSlicer 2.9.6 Klipper flavor only emits `M204 S` ([GCodeWriter](https://github.com/prusa3d/PrusaSlicer/blob/version_2.9.6/src/libslic3r/GCode/GCodeWriter.cpp)); Klipper accepts `M204 S` or `SET_VELOCITY_LIMIT`. `MulticolorRaise3d.gcode` toggles ACCEL 2000 (print) / 5000 (travel), 5468× / 5469×. |
 | `G29`, `M92`, `M218`, `M600`, `PRINT_START` macros | — | Omitted | Not in this file. Generic Klipper macros are not authoritative. |
@@ -54,10 +55,10 @@ Source: `MulticolorRaise3d.gcode` for dual; `LeftonlyExtruder.gcode` / `Rightonl
 
 | Dual behavior | ideaMaker (`MulticolorRaise3d.gcode`) | PrusaSlicer | Action |
 | --- | --- | --- | --- |
-| Heat / flow both tools | `M221`/`M104`/`M109` T0 and T1 at 230 °C, `M221 S94` | Same commands gated with `is_extruder_used`; PLA defaults 230 °C and 0.94 flow | Copied |
+| Heat / flow both tools | `M221`/`M104`/`M109` T0 and T1 at 230 °C, `M221 S94` | Same commands gated with `is_extruder_used`; PLA defaults 215 °C first layer / 225 °C later and 0.94 flow | Copied |
 | Home | Dual/left: `T0` then `G28`. Right-only: `T1` then `G28` | `{if is_extruder_used[0]}T0{else}T1{endif}` before `M190`/`G28` | Copied per file |
-| Dual purge | `T1`: `G1 F200 E10` then `G1 F200 E-11.00`. `T0`: `G1 F200 E10` (no XY wipe) | Same in-place prime; then `G1 X80 Y0 F9000` at Z15 before `M1001` | Prime copied. XY clearance added so the fan does not hit the home blob when Z drops |
-| Left-only purge | `LeftonlyExtruder.gcode`: blob + `G1 X20 Y0 F140 E30` | Blob + `G1 X80 Y0 F140 E1` then shared `G1 X80 Y0 F9000` | Used when T1 is unused. X80 from Stage 3 (fan hit the purge at X20) |
+| Dual purge | `T1`: `G1 F200 E10` then `G1 F200 E-11.00`. `T0`: `G1 F200 E10` (no XY wipe). Then print-start XY at Z15, then Z | Same in-place prime. First approach after `M1001` is XY then Z (post-process) | Prime copied. Do not drop Z at home |
+| Left-only purge | `LeftonlyExtruder.gcode`: blob + `G1 X20 Y0 F140 E30`, then print-start XY at Z15, then Z | Blob + `G1 X80 Y0 F140 E1`. First approach XY then Z | X80 from Stage 3 (fan hit the purge at X20 when Z dropped there) |
 | Right-only purge | `RightonlyExtruder.gcode`: heat/select `T1`, same `F140 E29` + `G1 X20 Y0 F140 E30` as left (no `E10`/`E-11`, no `X40 Y0`) | Same as left at X80; last move `E1` under `M83` | Dual in-place `E10`/`E-11` is **not** used for T1-only |
 | Unused tool after start | `M104 T1 S180` before layer 0 (T0 prints first) | Same when both tools used | Copied. Standby is **180 °C**, not `temperature-30` |
 | Select first printing tool | Starts on T0 after dual purge | `{if initial_extruder == 0}T0{else}T1{endif}` | Copied |
@@ -77,7 +78,7 @@ Source: `MulticolorRaise3d.gcode` for dual; `LeftonlyExtruder.gcode` / `Rightonl
 | `M99123` payload copied from this file | Stage 2–3: note whether Hyper Speed checkmark appears; abort if the printer refuses the file. |
 | `;Filament Name #1: [Raise3D] PLA` | Stage 2: confirm the touchscreen slot names still match. |
 | T0-only preheat (no T1) | Stage 3: confirm left nozzle lifts/prints without forcing a T1 heat. |
-| Left-only purge blob at homed origin then `X80 Y0` | Stage 3: confirm the fan clears the blob when Z drops; purge stays on the plate, not on the clip. |
+| Left-only purge blob at homed origin then `X80 Y0` | Stage 3: confirm XY travel at Z15 then Z drop at the part; fan should not hit the blob. Purge stays on the plate, not on the clip. |
 | Right-only: home on `T1`, same `X80 Y0` wipe with the right nozzle | Stage 6: confirm T1 lifts for home, wipe is on the plate, and first print stays right of ~X25. |
 | Dual in-place purge `F200 E10` / `E-11` (no XY wipe) | Stage 6–7: confirm blobs form at home and do not hit the clip or a parked nozzle. |
 | `SET_VELOCITY_LIMIT ACCEL=5000` without later 2000/5000 travel/print toggling | Stage 4: compare ringing. 0.5.36 emits 2000 print / 5000 travel (including first layer and short travel) via converted M204; count/spacing will not match ideaMaker exactly. |
