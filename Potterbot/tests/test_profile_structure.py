@@ -30,7 +30,8 @@ class VendorStructureTests(unittest.TestCase):
 
     def test_vendor_and_model(self) -> None:
         self.assertEqual(self.ini["vendor"]["name"], "3D Potter (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.1.6")
+        self.assertEqual(self.ini["vendor"]["repo_id"], "non-prusa-fff")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.1.10")
         self.assertEqual(self.ini["printer_model:POTTERBOT9"]["variants"], "1;2;3;4;5;6;7;8;9;10")
         self.assertEqual(self.ini["printer_model:POTTERBOT9"]["default_materials"], "Clay Potterbot")
 
@@ -65,7 +66,9 @@ class VendorStructureTests(unittest.TestCase):
         for nozzle in range(1, 11):
             self.assertIn(f"printer:{nozzle}mm Nozzle", self.ini)
             printer = self.ini[f"printer:{nozzle}mm Nozzle"]
-            self.assertGreaterEqual(float(printer["max_layer_height"]), 1.5)
+            layer = min(1.5, 0.8 * float(nozzle))
+            self.assertGreaterEqual(float(printer["max_layer_height"]), layer)
+            self.assertLess(layer, float(printer["nozzle_diameter"]))
             self.assertIn(f"print:Vase Hollow @Potterbot {nozzle}mm", self.ini)
             self.assertIn(f"print:Vase Bottom @Potterbot {nozzle}mm", self.ini)
             self.assertIn(f"print:Infill @Potterbot {nozzle}mm", self.ini)
@@ -74,9 +77,18 @@ class VendorStructureTests(unittest.TestCase):
             self.assertEqual(hollow["bottom_solid_layers"], "0")
             self.assertEqual(bottom["bottom_solid_layers"], "3")
             self.assertEqual(hollow.get("spiral_vase") or common["spiral_vase"], "1")
-            self.assertEqual(hollow.get("layer_height") or common["layer_height"], "1.5")
+            expected_layer = str(int(layer)) if layer.is_integer() else f"{layer:g}"
+            self.assertEqual(hollow.get("layer_height") or common["layer_height"], expected_layer)
             self.assertEqual(hollow["extrusion_width"], str(nozzle))
-            self.assertNotIn("layer_height", hollow)
+            self.assertGreater(
+                float(hollow["extrusion_width"]),
+                float(hollow.get("layer_height") or common["layer_height"]),
+            )
+            if layer < 1.5:
+                self.assertEqual(hollow["layer_height"], "0.8")
+                self.assertEqual(hollow["first_layer_height"], "0.8")
+            else:
+                self.assertNotIn("layer_height", hollow)
             self.assertIn(f"nozzle_diameter[0]=={nozzle}", hollow["compatible_printers_condition"])
 
     def test_official_cura_speeds_and_shell(self) -> None:
@@ -87,8 +99,10 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(p["first_layer_speed"], "40")
         self.assertEqual(p["fill_density"], "0%")
         self.assertEqual(p["fill_pattern"], "grid")
-        self.assertEqual(p["bottom_fill_pattern"], "archimedeanchords")
+        self.assertEqual(p["bottom_fill_pattern"], "concentric")
         self.assertEqual(p["top_fill_pattern"], "rectilinear")
+        self.assertEqual(p["perimeter_generator"], "arachne")
+        self.assertEqual(p["infill_overlap"], "15%")
         self.assertEqual(p["top_solid_layers"], "0")
         self.assertEqual(p["perimeters"], "1")
         self.assertEqual(p["skirts"], "3")
@@ -104,6 +118,7 @@ class VendorStructureTests(unittest.TestCase):
         self.assertEqual(infill["fill_density"], "15%")
         self.assertEqual(infill.get("fill_pattern") or self.ini["print:*common*"]["fill_pattern"], "grid")
         self.assertEqual(infill["bottom_solid_layers"], "3")
+        self.assertEqual(infill["top_solid_layers"], "3")
         self.assertEqual(infill["avoid_crossing_perimeters"], "1")
         printer = self.ini["printer:*common*"]
         self.assertEqual(printer["retract_length"], "80")

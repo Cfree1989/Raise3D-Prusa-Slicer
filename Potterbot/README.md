@@ -12,9 +12,9 @@ Printer workflow: slice on the PC → upload `.gcode` in Duet Web Control (`192.
 | --- | --- |
 | Printer | **1mm Nozzle** … **10mm Nozzle** (default 5 mm) |
 | Filament | **Clay Potterbot** (0 °C, no fan, 1.75 mm volumetric model) |
-| Print | **Vase Hollow**, **Vase Bottom** (3 Archimedean-chord bottoms then spiral), and **Infill** (15% grid, 3 Archimedean-chord bottoms, rectilinear tops, spiral off) |
+| Print | **Vase Hollow**, **Vase Bottom** (3 concentric bottoms then spiral), and **Infill** (15% grid, 3 concentric bottoms, 3 rectilinear tops, spiral off) |
 
-Layer height is the official Fine value: **1.5 mm** on every nozzle. Line width equals the nozzle on the machine (lab Cura notes). Speeds are the official Cura values: **40 mm/s** print, **80** travel, **20** bottoms. Every printer variant retracts **E-80 at 17 mm/s** (same feed as the official Cura end `F1000`) and hops **Z 5 mm** on travels ≥ 15 mm. Spiral vase walls do not travel, so they do not retract; skirt, bottoms, infill, and hops between objects do. That is not the FAQ 1000 mm @ 1000 mm/s recipe that stalls this motor. End G-code still lifts Z 10 mm and **retracts E-500**, then homes.
+Layer height is the official Fine value: **1.5 mm**, except **0.8 mm** on the 1 mm nozzle (PrusaSlicer will not slice when line width is not greater than layer height, and it also rejects a first layer taller than the tip). Line width equals the nozzle on the machine (lab Cura notes). Bottoms use **Arachne** so concentric loops can change width and close the gaps classic fill leaves on wide tips. Speeds are the official Cura values: **40 mm/s** print, **80** travel, **20** bottoms. Every printer variant retracts **E-80 at 17 mm/s** (same feed as the official Cura end `F1000`) and hops **Z 5 mm** on travels ≥ 15 mm. Spiral vase walls do not travel, so they do not retract; skirt, bottoms, infill, and hops between objects do. That is not the FAQ 1000 mm @ 1000 mm/s recipe that stalls this motor. End G-code still lifts Z 10 mm and **retracts E-500**, then homes.
 
 The plater is the **15×15″ bat** clipped to Y travel: **381 × 360 × 400 mm**. Firmware travel is 420 × 360 × 400; X past 381 is unused so the model stays on the bat.
 
@@ -37,7 +37,7 @@ C:\Repos\Prusa-Slicer-Print-Profiles\Potterbot\scripts\validate_gcode.py
 
 1. Copy `vendor/Potterbot.ini` and `vendor/Potterbot.idx` to `%APPDATA%\PrusaSlicer\vendor\`
 2. Restart PrusaSlicer
-3. **Configuration Wizard** → Other FFF → enable **3D Potter (experimental)** → Potterbot 9 → pick **1mm Nozzle** through **10mm Nozzle** to match the tip on the machine
+3. **Configuration Wizard** → Other Vendors (under Other FFF) → enable **3D Potter (experimental)** → 3D Potterbot 9 → pick **1mm Nozzle** through **10mm Nozzle** to match the tip on the machine. The list name is **3D Potter**, not Potterbot.
 4. Confirm **Clay Potterbot** and a Vase Hollow / Vase Bottom profile appear
 
 ### B. Import Config Bundle
@@ -60,7 +60,7 @@ C:\Repos\Prusa-Slicer-Print-Profiles\Potterbot\scripts\validate_gcode.py
 - 1.75 mm filament diameter matches how this ram’s E steps were calibrated (official Cura and Simplify3D both used it).
 - E-500 at the end is enough to stop ooze on your current clay body. The Duet **Retract** button is a much larger pull if you need it.
 - Printer retract (80 mm at 17 mm/s, 5 mm hop) is untested on the machine. It uses the official end-G-code feed, not the FAQ 1000 mm/s. If the motor complains, lower speed. If it still drools, raise length toward 200 then 500. Vase Bottom will retract between bottom loops; pure spiral walls will not.
-- Official docs only publish 1.5 mm layer height (Fine / 3D Potter Standard). That value is used on every nozzle. Line width still follows the installed tip. Tune layer height per clay if 1.5 mm is wrong for a 1 mm or 10 mm nozzle.
+- Official docs only publish 1.5 mm layer height (Fine / 3D Potter Standard). That value is used on 2–10 mm nozzles. The 1 mm tip is **0.8 mm** so line width stays above layer height. Line width still follows the installed tip. Tune layer height per clay if 1.5 mm is wrong for a large nozzle.
 - Bat origin is X0 Y0 (firmware bed edge). If the bat is shifted on the table, jog and re-zero before trusting the plater.
 - `pause.g` on the board homes the machine. Slicer pause emits `M25` instead. Do not copy `pause.g` into the profile.
 
