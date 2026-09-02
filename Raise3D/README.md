@@ -80,6 +80,8 @@ Start/end G-code and Hyper Speed headers come from ideaMaker **5.4.2.8790** (`RA
 
 The 2022 forum zips in `reference/community/` are **community starting points** (Marlin, pre-Hyper Speed). They were not used for start/end G-code. Thread: [Prusa Slicer Profile for Raise3D Pro2 dual head printer](https://forum.prusa3d.com/forum/prusaslicer/prusa-slicer-profile-for-raise3d-pro2-dual-head-printer/).
 
+Comparison slices (this profile’s exports, a later ideaMaker job, and Prusa XL IS) live under `reference/prusaslicer/`, `reference/ideamaker/IdeaMakerTest.gcode`, and `reference/prusa-xl/` — see `reference/README.md`.
+
 Command-by-command mapping: `docs/GCODE_MAPPING.md`  
 Evidence labels: `docs/MACHINE_BEHAVIOR.md`
 

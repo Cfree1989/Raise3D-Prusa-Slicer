@@ -1,15 +1,32 @@
-# Reference files (source of truth)
+# Reference files
 
-Drop known-good **ideaMaker** output here. PrusaSlicer start/end G-code, tool changes, and Hyper Speed behavior will be derived from these files only. Do not replace them with generic Klipper or Prusa examples.
+Known-good **ideaMaker** output lives in `ideamaker/`. PrusaSlicer start/end G-code, tool changes, and Hyper Speed behavior are derived from those files only. Do not replace them with generic Klipper or Prusa examples.
 
-Currently present:
+| Path | What it is |
+| --- | --- |
+| `ideamaker/` | Authoritative Hyper Speed ideaMaker jobs (left / right / dual) plus a later ideaMaker comparison slice |
+| `prusaslicer/` | Exports from this experimental Dual profile — compare only, not a source of start/end G-code |
+| `prusa-xl/` | Prusa XL IS slices of the same models — motion/wipe-tower reference, not machine evidence |
+| `community/` | 2022 Prusa forum config zips; **not** Hyper Speed machine evidence (see `SOURCE_CLASSIFICATION.md`) |
+
+`.data` files are binary metadata only and were not modified.
+
+## ideaMaker (source of truth)
 
 - `ideamaker/LeftonlyExtruder.gcode` + `.data` — Hyper Speed, left `T0`, `[Raise3D] PLA`
 - `ideamaker/RightonlyExtruder.gcode` + `.data` — Hyper Speed, right `T1`, `[Raise3D] PLA`
-- `ideamaker/MulticolorRaise3d.gcode` + `.data` — Hyper Speed, dual / two-color `T0`+`T1`, `[Raise3D] PLA`
-- `community/` — 2022 Prusa forum config zips; **not** Hyper Speed machine evidence (see `SOURCE_CLASSIFICATION.md`)
+- `ideamaker/MulticolorRaise3d.gcode` + `Multicolor.data` — Hyper Speed, dual / two-color `T0`+`T1`, `[Raise3D] PLA`
+- `ideamaker/IdeaMakerTest.gcode` + `.data` — later ideaMaker slice of the same test model as `prusaslicer/Raise3DTest_…`
 
-`.data` files are binary metadata only and were not modified.
+## PrusaSlicer (this profile)
+
+- `prusaslicer/Raise3DTest_0.4n_0.2mm_PLA_PRO2PLUS_HS_DUAL_3h2m.gcode` — current Dual profile export
+- `prusaslicer/proj_1_…`, `RaiseMulticolor_…`, `Dualcolorsupportj_…` — earlier Dual-profile exports (pre–Hyper Speed print preset)
+
+## Prusa XL (comparison only)
+
+- `prusa-xl/PrusaXLTest_0.4n_0.2mm_PLA_XLIS_2h29m.bgcode`
+- `prusa-xl/PrusaMulticolor_1_0.4n_0.2mm_PLA,PLA_XLIS_4h0m.bgcode`
 
 ## Essential (needed before left-extruder G-code is written)
 

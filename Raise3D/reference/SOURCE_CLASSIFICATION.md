@@ -8,8 +8,30 @@
 | `ideamaker/LeftonlyExtruder.data` | ideaMaker metadata; inspect only, do not modify |
 | `ideamaker/RightonlyExtruder.gcode` | Known-good Hyper Speed ideaMaker output, right nozzle, PLA |
 | `ideamaker/RightonlyExtruder.data` | ideaMaker metadata; inspect only, do not modify |
-| `ideamaker/Multicolor.gcode` | Known-good Hyper Speed ideaMaker dual / two-color output, T0+T1, PLA |
+| `ideamaker/MulticolorRaise3d.gcode` | Known-good Hyper Speed ideaMaker dual / two-color output, T0+T1, PLA |
 | `ideamaker/Multicolor.data` | ideaMaker metadata; inspect only, do not modify |
+
+## Additional ideaMaker (not used for start/end)
+
+| File | Role |
+| --- | --- |
+| `ideamaker/IdeaMakerTest.gcode` + `.data` | Later ideaMaker slice of the same test model as `prusaslicer/Raise3DTest_…` |
+
+## This profile’s exports (not start/end evidence)
+
+| File | Role |
+| --- | --- |
+| `prusaslicer/Raise3DTest_0.4n_0.2mm_PLA_PRO2PLUS_HS_DUAL_3h2m.gcode` | Current Dual profile export (2026-09-02) |
+| `prusaslicer/proj_1_0.4n_0.2mm_PLA_PRO2PLUS_HS_DUAL_3h16m.gcode` | Earlier Dual-profile export |
+| `prusaslicer/RaiseMulticolor_1_0.4n_0.2mm_PLA,PLA_PRO2PLUS_HS_DUAL_4h10m.gcode` | Earlier dual-color Dual-profile export |
+| `prusaslicer/Dualcolorsupportj_1_0.4n_0.2mm_PLA,PLA_PRO2PLUS_HS_DUAL_4h8m.gcode` | Earlier dual-color + support Dual-profile export |
+
+## Prusa XL comparison (not machine evidence)
+
+| File | Role |
+| --- | --- |
+| `prusa-xl/PrusaXLTest_0.4n_0.2mm_PLA_XLIS_2h29m.bgcode` | Same test model on XL IS |
+| `prusa-xl/PrusaMulticolor_1_0.4n_0.2mm_PLA,PLA_XLIS_4h0m.bgcode` | Dual-color XL IS comparison |
 
 ## Community-derived (not Hyper Speed evidence)
 
