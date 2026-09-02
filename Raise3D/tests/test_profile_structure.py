@@ -26,14 +26,14 @@ class VendorStructureTests(unittest.TestCase):
         self.assertTrue(IDX.is_file())
         self.assertIn("vendor", self.ini)
         self.assertEqual(self.ini["vendor"]["name"], "Raise3D (experimental)")
-        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.35")
+        self.assertEqual(self.ini["vendor"]["config_version"], "0.5.37")
         self.assertNotIn("printer_model:PRO2PLUS_HS", self.ini)
         self.assertIn("printer_model:PRO2PLUS_HS_DUAL", self.ini)
         self.assertNotIn("printer:Raise3D Pro2 Plus Hyper Speed 0.4 Left", self.ini)
 
     def test_print_and_filament_are_tied_to_dual_printer(self) -> None:
         filament = self.ini["filament:PLA Raise3D"]
-        printp = self.ini["print:0.20mm SPEED @Raise3D Pro2 Plus HS"]
+        printp = self.ini["print:0.20mm Hyper Speed @Raise3D Pro2 Plus HS"]
         cond_f = filament.get("compatible_printers_condition") or self.ini["filament:*common*"][
             "compatible_printers_condition"
         ]
@@ -51,9 +51,9 @@ class VendorStructureTests(unittest.TestCase):
         self.assertNotIn(";Filament Name #1: PLA\n", start)
         self.assertNotIn('{"[Raise3D] PLA"}', start)
         self.assertIn("filament_extruder_id", self.ini["filament:*common*"]["start_filament_gcode"])
-        self.assertEqual(filament["temperature"], "225")
-        self.assertEqual(filament["first_layer_temperature"], "215")
-        self.assertEqual(filament.get("extrusion_multiplier") or self.ini["filament:*common*"]["extrusion_multiplier"], "1")
+        self.assertEqual(filament["temperature"], "230")
+        self.assertEqual(filament["first_layer_temperature"], "230")
+        self.assertEqual(filament.get("extrusion_multiplier") or self.ini["filament:*common*"]["extrusion_multiplier"], "0.94")
         self.assertEqual(filament["first_layer_bed_temperature"], "60")
         self.assertEqual(filament["idle_temperature"], "70")
 
@@ -97,6 +97,9 @@ class VendorStructureTests(unittest.TestCase):
         self.assertNotIn("M218", start)
         self.assertNotIn(";Extruder Offset #2", start)
         self.assertEqual(p["retract_length_toolchange"], "11,11")
+        self.assertEqual(p["deretract_speed"], "25,25")
+        self.assertEqual(p["retract_before_wipe"], "100%,100%")
+        self.assertEqual(p["wipe"], "1,1")
         self.assertNotIn("M116", p["toolchange_gcode"])
         self.assertNotIn("temperature[previous_extruder]", p["toolchange_gcode"])
         self.assertNotIn("X30.000 Y295.000", p["toolchange_gcode"])
@@ -110,39 +113,61 @@ class VendorStructureTests(unittest.TestCase):
         self.assertIn("is_extruder_used[0]", p["end_gcode"])
         self.assertIn("is_extruder_used[1]", p["end_gcode"])
         self.assertIn("M104 S0", p["end_gcode"])
-        printp = self.ini["print:0.20mm SPEED @Raise3D Pro2 Plus HS"]
+        printp = self.ini["print:0.20mm Hyper Speed @Raise3D Pro2 Plus HS"]
         cond = printp.get("compatible_printers_condition") or self.ini["print:*common*"][
             "compatible_printers_condition"
         ]
         self.assertIn("PRINTER_VARIANT_DUAL", cond)
         self.assertEqual(printp.get("wipe_tower") or self.ini["print:*common*"]["wipe_tower"], "1")
 
-    def test_print_is_xl_layout_capped_at_hyper_fff_l1(self) -> None:
+    def test_print_matches_ideamaker_hyper_speed(self) -> None:
         p = self.ini["print:*common*"]
+        named = self.ini["print:0.20mm Hyper Speed @Raise3D Pro2 Plus HS"]
+        self.assertEqual(named.get("inherits"), "*common*")
+        self.assertEqual(named.get("alias"), "0.20mm Hyper Speed")
         self.assertEqual(p["perimeters"], "2")
         self.assertEqual(p["skirts"], "0")
         self.assertEqual(p["fill_pattern"], "grid")
-        self.assertEqual(p["first_layer_height"], "0.2")
-        self.assertEqual(p["first_layer_speed"], "40")
-        self.assertEqual(p["first_layer_infill_speed"], "100")
+        self.assertEqual(p["layer_height"], "0.2")
+        self.assertEqual(p["first_layer_height"], "0.3")
+        self.assertEqual(p["first_layer_speed"], "50")
+        self.assertEqual(p["first_layer_infill_speed"], "50")
+        self.assertEqual(p["first_layer_extrusion_width"], "0.48")
+        self.assertEqual(p["extrusion_width"], "0.4")
+        self.assertEqual(p["perimeter_extrusion_width"], "0.4")
+        self.assertEqual(p["external_perimeter_extrusion_width"], "0.4")
+        self.assertEqual(p["infill_extrusion_width"], "0.4")
+        self.assertEqual(p["solid_infill_extrusion_width"], "0.4")
+        self.assertEqual(p["top_infill_extrusion_width"], "0.4")
+        self.assertEqual(p["bottom_solid_layers"], "4")
+        self.assertEqual(p["top_solid_layers"], "4")
         self.assertEqual(p["perimeter_generator"], "arachne")
         self.assertEqual(p["max_print_speed"], "150")
         self.assertEqual(p["perimeter_speed"], "150")
-        self.assertEqual(p["infill_speed"], "150")
+        self.assertEqual(p["external_perimeter_speed"], "150")
+        self.assertEqual(p["small_perimeter_speed"], "75")
+        self.assertEqual(p["overhang_speed_3"], "50%")
+        self.assertEqual(p["infill_speed"], "120")
+        self.assertEqual(p["solid_infill_speed"], "120")
+        self.assertEqual(p["support_material_speed"], "120")
+        self.assertEqual(p["top_solid_infill_speed"], "100")
+        self.assertEqual(p["gap_fill_speed"], "100")
+        self.assertEqual(p["bridge_speed"], "30")
+        self.assertEqual(p["bridge_flow_ratio"], "0.9")
         self.assertEqual(p["travel_speed"], "150")
-        self.assertEqual(p["travel_speed_z"], "12")
+        self.assertEqual(p["travel_speed_z"], "5")
         self.assertEqual(p["default_acceleration"], "2000")
         self.assertEqual(p["travel_acceleration"], "5000")
-        self.assertEqual(p["travel_short_distance_acceleration"], "250")
-        self.assertEqual(p["first_layer_acceleration"], "500")
+        self.assertEqual(p["travel_short_distance_acceleration"], "5000")
+        self.assertEqual(p["first_layer_acceleration"], "2000")
         self.assertEqual(p["first_layer_speed_over_raft"], "30")
-        self.assertEqual(p["bridge_acceleration"], "1500")
+        self.assertEqual(p["bridge_acceleration"], "2000")
         self.assertEqual(p["perimeter_acceleration"], "2000")
         self.assertEqual(p["infill_acceleration"], "2000")
-        self.assertEqual(p["top_solid_infill_acceleration"], "1000")
+        self.assertEqual(p["top_solid_infill_acceleration"], "2000")
+        self.assertEqual(p["elefant_foot_compensation"], "0")
         self.assertLess(int(p["first_layer_speed"]), int(p["perimeter_speed"]))
         self.assertLess(int(p["first_layer_infill_speed"]), int(p["infill_speed"]))
-        self.assertLess(int(p["first_layer_acceleration"]), int(p["default_acceleration"]))
         self.assertEqual(p["wipe_tower"], "1")
         self.assertEqual(p["wipe_tower_cone_angle"], "25")
         self.assertEqual(p["wipe_tower_brim_width"], "3")
@@ -160,8 +185,8 @@ class VendorStructureTests(unittest.TestCase):
         filament = self.ini["filament:PLA Raise3D"]
         self.assertEqual(filament["filament_max_volumetric_speed"], "15")
 
-    def test_xl_style_print_family_exists(self) -> None:
-        expected = [
+    def test_xl_style_print_family_removed(self) -> None:
+        removed = [
             "print:0.10mm FAST DETAIL @Raise3D Pro2 Plus HS",
             "print:0.15mm SPEED @Raise3D Pro2 Plus HS",
             "print:0.15mm STRUCTURAL @Raise3D Pro2 Plus HS",
@@ -171,34 +196,10 @@ class VendorStructureTests(unittest.TestCase):
             "print:0.25mm STRUCTURAL @Raise3D Pro2 Plus HS",
             "print:0.28mm DRAFT @Raise3D Pro2 Plus HS",
         ]
-        for section in expected:
-            self.assertIn(section, self.ini)
-        structural = self.ini["print:0.20mm STRUCTURAL @Raise3D Pro2 Plus HS"]
-        self.assertEqual(structural["perimeter_speed"], "80")
-        self.assertEqual(structural["external_perimeter_speed"], "45")
-        self.assertEqual(structural["small_perimeter_speed"], "45")
-        self.assertEqual(structural["infill_speed"], "120")
-        self.assertEqual(structural["solid_infill_speed"], "140")
-        self.assertEqual(structural["gap_fill_speed"], "65")
-        self.assertEqual(structural["top_solid_infill_speed"], "75")
-        self.assertEqual(structural["external_perimeter_acceleration"], "1500")
-        speed = self.ini["print:*common*"]
-        speed20 = self.ini["print:0.20mm SPEED @Raise3D Pro2 Plus HS"]
-        self.assertEqual(speed["perimeter_speed"], "150")
-        self.assertEqual(speed["infill_speed"], "150")
-        self.assertEqual(speed["external_perimeter_speed"], "150")
-        self.assertEqual(speed20["top_solid_infill_acceleration"], "1500")
-        self.assertGreater(int(speed["perimeter_speed"]), int(structural["perimeter_speed"]))
-        self.assertGreater(int(speed["external_perimeter_speed"]), int(structural["external_perimeter_speed"]))
-        self.assertGreater(int(speed["infill_speed"]), int(structural["infill_speed"]))
-        self.assertGreater(int(speed["default_acceleration"]), int(structural["external_perimeter_acceleration"]))
-        self.assertLess(int(speed["first_layer_speed"]), int(structural["perimeter_speed"]))
-        self.assertLess(int(speed["first_layer_infill_speed"]), int(structural["infill_speed"]))
-        self.assertNotIn("first_layer_speed", structural)
-        self.assertNotIn("first_layer_infill_speed", structural)
-        self.assertNotIn("first_layer_acceleration", structural)
-        self.assertEqual(self.ini["print:0.15mm SPEED @Raise3D Pro2 Plus HS"]["layer_height"], "0.15")
-        self.assertEqual(self.ini["print:0.10mm FAST DETAIL @Raise3D Pro2 Plus HS"]["layer_height"], "0.1")
+        for section in removed:
+            self.assertNotIn(section, self.ini)
+        print_sections = [s for s in self.ini.sections() if s.startswith("print:") and s != "print:*common*"]
+        self.assertEqual(print_sections, ["print:0.20mm Hyper Speed @Raise3D Pro2 Plus HS"])
 
     def test_wizard_filaments_are_raise3d_named_and_xl_temps(self) -> None:
         names = [
@@ -219,10 +220,13 @@ class VendorStructureTests(unittest.TestCase):
             ";".join(names),
         )
         pla = self.ini["filament:PLA Raise3D"]
-        self.assertEqual(pla["first_layer_temperature"], "215")
-        self.assertEqual(pla["temperature"], "225")
+        self.assertEqual(pla["first_layer_temperature"], "230")
+        self.assertEqual(pla["temperature"], "230")
         self.assertEqual(pla["first_layer_bed_temperature"], "60")
-        self.assertEqual(pla["full_fan_speed_layer"], "3")
+        self.assertEqual(pla["extrusion_multiplier"], "0.94")
+        self.assertEqual(pla["full_fan_speed_layer"], "2")
+        self.assertEqual(pla["min_fan_speed"], "50")
+        self.assertEqual(pla["max_fan_speed"], "100")
         self.assertEqual(pla["filament_max_volumetric_speed"], "15")
         self.assertEqual(self.ini["filament:*common*"]["filament_cost"], "100")
         self.assertEqual(self.ini["filament:*common*"]["filament_spool_weight"], "135")

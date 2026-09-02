@@ -21,6 +21,6 @@
 - RaiseTouch version
 - ideaMaker Hyper Speed template export
 - Screenshots of the selected printer / filament / template
-- PLA ideaMaker slice (present: `[Raise3D] PLA` at 230 °C / 94% flow). PrusaSlicer PLA Raise3D uses the operator’s proven 215/225 °C and 1.00 multiplier.
+- PLA ideaMaker slice (present: `[Raise3D] PLA` at 230 °C / 94% flow). PrusaSlicer PLA Raise3D matches those numbers.
 
 Add screenshots or notes here when available.
